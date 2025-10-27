@@ -12,34 +12,17 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 /**
- * 数据库连接池配置接口
- * 扩展了 pg 的 PoolConfig 类型以确保类型安全
- */
-interface DatabaseConfig extends PoolConfig {
-  host: string;
-  port: number;
-  database: string;
-  user: string;
-  password: string;
-}
-
-/**
  * 从环境变量中读取数据库配置
  *
  * 优先使用 DATABASE_URL，如果不存在则使用单独的配置项
  * DATABASE_URL 格式: postgresql://user:password@host:port/database
  */
-const getDatabaseConfig = (): DatabaseConfig => {
+const getDatabaseConfig = (): PoolConfig => {
   // 如果提供了 DATABASE_URL，优先使用它（Railway 等云平台常用）
   if (process.env.DATABASE_URL) {
     return {
       connectionString: process.env.DATABASE_URL,
-      // 以下配置作为回退选项
-      host: process.env.DB_HOST || 'localhost',
-      port: parseInt(process.env.DB_PORT || '5432', 10),
-      database: process.env.DB_NAME || 'three_brothers_game',
-      user: process.env.DB_USER || 'postgres',
-      password: process.env.DB_PASSWORD || '',
+      // 不设置 host/port/database/user/password，让 connectionString 完全控制连接
     };
   }
 
@@ -82,8 +65,8 @@ const poolConfig: PoolConfig = {
   maxUses: parseInt(process.env.DB_MAX_USES || '7500', 10), // 单个连接最大使用次数
   allowExitOnIdle: process.env.NODE_ENV === 'development',  // 开发环境允许退出
 
-  // SSL 配置（生产环境推荐开启）
-  ssl: process.env.NODE_ENV === 'production'
+  // SSL 配置（生产环境或使用 DATABASE_URL 时开启）
+  ssl: (process.env.NODE_ENV === 'production' || process.env.DATABASE_URL)
     ? { rejectUnauthorized: false } // 云服务通常需要 SSL
     : undefined,
 
