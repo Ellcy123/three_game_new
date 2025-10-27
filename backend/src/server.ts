@@ -17,6 +17,7 @@ import { logger } from './utils/logger';
 import { initSocketServer } from './socket/socketServer';
 import { testConnection, closePool } from '@config/database';
 import { connectRedis, testRedisConnection, closeRedis } from '@config/redis';
+import { initDatabase } from '@config/initDatabase';
 
 // ========================================
 // 加载环境变量
@@ -52,6 +53,19 @@ async function startServer() {
     }
 
     logger.info('✅ 数据库连接成功');
+    logger.info('');
+
+    // ========================================
+    // 1.5. 初始化数据库表结构
+    // ========================================
+    logger.info('🔧 正在初始化数据库表结构...');
+    try {
+      await initDatabase();
+      logger.info('✅ 数据库表结构初始化完成');
+    } catch (error) {
+      logger.error('❌ 数据库表结构初始化失败:', error);
+      logger.error('   服务器将继续运行，但可能无法正常工作');
+    }
     logger.info('');
 
     // ========================================
