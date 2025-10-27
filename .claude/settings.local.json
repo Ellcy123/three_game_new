@@ -17,7 +17,12 @@
       "Bash(taskkill:*)",
       "Bash(curl:*)",
       "Bash(powershell -Command:*)",
-      "Bash(powershell -ExecutionPolicy Bypass -File:*)"
+      "Bash(powershell -ExecutionPolicy Bypass -File:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm run start:*)",
+      "Bash(dir:*)",
+      "Bash(timeout 5 npm start:*)",
+      "Bash(timeout 8 npm start)"
     ],
     "deny": [],
     "ask": []
