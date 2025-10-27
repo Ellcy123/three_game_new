@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install)",
+      "Bash(tree:*)",
+      "Bash(npm run typecheck:*)",
+      "Bash(timeout 5 npm run dev:*)",
+      "Bash(chmod:*)",
+      "Bash(psql:*)",
+      "Bash(where:*)",
+      "Read(//c/Program Files/**)",
+      "Bash(npm run db:init:*)",
+      "Bash(powershell -Command \"Get-Service -Name postgresql* | Select-Object Name, Status, DisplayName\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
