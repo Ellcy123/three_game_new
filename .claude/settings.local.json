@@ -23,7 +23,10 @@
       "Bash(dir:*)",
       "Bash(timeout 5 npm start:*)",
       "Bash(timeout 8 npm start)",
-      "Bash(npm create:*)"
+      "Bash(npm create:*)",
+      "Bash(tasklist:*)",
+      "Bash(powershell Stop-Process -Id 52832 -Force)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []

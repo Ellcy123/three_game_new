@@ -88,10 +88,12 @@ const poolConfig: PoolConfig = {
   maxUses: parseInt(process.env.DB_MAX_USES || '7500', 10), // 单个连接最大使用次数
   allowExitOnIdle: process.env.NODE_ENV === 'development',  // 开发环境允许退出
 
-  // SSL 配置（生产环境或使用 DATABASE_URL 时开启）
-  ssl: (process.env.NODE_ENV === 'production' || process.env.DATABASE_URL)
-    ? { rejectUnauthorized: false } // 云服务通常需要 SSL
-    : undefined,
+  // SSL 配置（根据 DB_SSL 环境变量决定，默认生产环境开启）
+  ssl: process.env.DB_SSL === 'false'
+    ? false // 明确禁用 SSL
+    : (process.env.NODE_ENV === 'production')
+      ? { rejectUnauthorized: false } // 云服务通常需要 SSL
+      : false, // 开发环境默认关闭 SSL
 
   // 应用名称（便于在数据库中识别连接来源）
   application_name: process.env.APP_NAME || 'echo-game-backend',
