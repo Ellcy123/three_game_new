@@ -327,7 +327,8 @@ export const register = async (req: Request, res: Response): Promise<void> => {
           email: result.email,
           createdAt: result.created_at,
         },
-        tokens,
+        token: tokens.accessToken,  // 前端期望的是 token 字段
+        tokens,  // 保留完整的 tokens 对象供需要时使用
       })
     );
   } catch (error) {
@@ -415,7 +416,8 @@ export const login = async (req: Request, res: Response): Promise<void> => {
           email: user.email,
           createdAt: user.created_at,
         },
-        tokens,
+        token: tokens.accessToken,  // 前端期望的是 token 字段
+        tokens,  // 保留完整的 tokens 对象供需要时使用
       })
     );
   } catch (error) {
