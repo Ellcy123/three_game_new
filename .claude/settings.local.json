@@ -1,16 +1,23 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm install)",
-      "Bash(tree:*)",
+      "Bash(railway:*)",
+      "Bash(npm install:*)",
+      "Bash(node -e:*)",
       "Bash(npm run typecheck:*)",
-      "Bash(timeout 5 npm run dev:*)",
-      "Bash(chmod:*)",
+      "Bash(pg_isready:*)",
       "Bash(psql:*)",
-      "Bash(where:*)",
-      "Read(//c/Program Files/**)",
-      "Bash(npm run db:init:*)",
-      "Bash(powershell -Command \"Get-Service -Name postgresql* | Select-Object Name, Status, DisplayName\")"
+      "Bash(sc query:*)",
+      "Read(//c/Program Files/PostgreSQL/**)",
+      "Bash(redis-cli ping:*)",
+      "Bash(npm run dev:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill /PID 35420 /F)",
+      "Bash(taskkill:*)",
+      "Bash(curl:*)",
+      "Bash(powershell -Command:*)",
+      "Bash(powershell -ExecutionPolicy Bypass -File:*)"
     ],
     "deny": [],
     "ask": []
