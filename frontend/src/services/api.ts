@@ -1,4 +1,5 @@
-import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
+import axios, { AxiosError } from 'axios';
+import type { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 
 // 创建 axios 实例
 const api: AxiosInstance = axios.create({

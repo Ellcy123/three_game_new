@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import authApi, { RegisterData, UserData } from '../services/authApi';
+import authApi from '../services/authApi';
+import type { RegisterData, UserData } from '../services/authApi';
 
 // 认证状态接口
 interface AuthState {
