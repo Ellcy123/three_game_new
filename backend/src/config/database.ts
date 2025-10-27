@@ -18,15 +18,38 @@ dotenv.config();
  * DATABASE_URL 格式: postgresql://user:password@host:port/database
  */
 const getDatabaseConfig = (): PoolConfig => {
+  // 调试：输出所有可能的数据库环境变量
+  console.log('🔍 数据库环境变量检查:');
+  console.log('  DATABASE_URL:', process.env.DATABASE_URL ? '已设置' : '未设置');
+  console.log('  DB_HOST:', process.env.DB_HOST || '未设置');
+  console.log('  PGHOST:', process.env.PGHOST || '未设置');
+  console.log('  PGPORT:', process.env.PGPORT || '未设置');
+  console.log('  PGDATABASE:', process.env.PGDATABASE || '未设置');
+  console.log('  PGUSER:', process.env.PGUSER || '未设置');
+
   // 如果提供了 DATABASE_URL，优先使用它（Railway 等云平台常用）
   if (process.env.DATABASE_URL) {
+    console.log('✓ 使用 DATABASE_URL 连接数据库');
     return {
       connectionString: process.env.DATABASE_URL,
       // 不设置 host/port/database/user/password，让 connectionString 完全控制连接
     };
   }
 
+  // Railway 的 PostgreSQL 插件使用 PG* 前缀的变量
+  if (process.env.PGHOST) {
+    console.log('✓ 使用 Railway PostgreSQL 变量 (PG*)');
+    return {
+      host: process.env.PGHOST,
+      port: parseInt(process.env.PGPORT || '5432', 10),
+      database: process.env.PGDATABASE || 'railway',
+      user: process.env.PGUSER || 'postgres',
+      password: process.env.PGPASSWORD || '',
+    };
+  }
+
   // 使用单独的环境变量配置
+  console.log('⚠ 使用默认配置或 DB_* 环境变量');
   return {
     host: process.env.DB_HOST || 'localhost',
     port: parseInt(process.env.DB_PORT || '5432', 10),

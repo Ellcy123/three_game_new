@@ -1,0 +1,39 @@
+# Railway 项目配置文件
+
+# 后端服务配置
+[[services]]
+name = "backend"
+source = "backend"
+
+[services.build]
+builder = "NIXPACKS"
+buildCommand = "npm install && npm run build"
+
+[services.deploy]
+startCommand = "npm start"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
+
+# 环境变量（需要在 Railway 控制台配置）
+# DATABASE_URL - PostgreSQL 数据库连接字符串
+# JWT_SECRET - JWT 密钥
+# NODE_ENV=production
+# PORT - Railway 会自动设置
+
+# 前端服务配置
+[[services]]
+name = "frontend"
+source = "frontend"
+
+[services.build]
+builder = "NIXPACKS"
+buildCommand = "npm install && npm run build"
+
+[services.deploy]
+startCommand = "npx serve -s dist -l $PORT"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
+
+# 环境变量（需要在 Railway 控制台配置）
+# VITE_API_URL - 后端服务的完整 URL
+# VITE_WS_URL - WebSocket 服务的完整 URL
