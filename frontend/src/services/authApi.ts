@@ -41,7 +41,7 @@ export const authApi = {
    * @returns 用户信息和 token
    */
   register: async (data: RegisterData): Promise<AuthResponse> => {
-    const response = await api.post<AuthResponse>('/api/auth/register', data);
+    const response = await api.post<AuthResponse>('/api/v1/auth/register', data);
     return response.data;
   },
 
@@ -51,7 +51,7 @@ export const authApi = {
    * @returns 用户信息和 token
    */
   login: async (data: LoginData): Promise<AuthResponse> => {
-    const response = await api.post<AuthResponse>('/api/auth/login', data);
+    const response = await api.post<AuthResponse>('/api/v1/auth/login', data);
     return response.data;
   },
 
@@ -60,7 +60,7 @@ export const authApi = {
    * @returns 用户信息
    */
   verify: async (): Promise<VerifyResponse> => {
-    const response = await api.get<VerifyResponse>('/api/auth/verify');
+    const response = await api.get<VerifyResponse>('/api/v1/auth/verify');
     return response.data;
   },
 
@@ -74,7 +74,7 @@ export const authApi = {
 
     // 可选：调用后端登出接口（如果有）
     try {
-      await api.post('/api/auth/logout');
+      await api.post('/api/v1/auth/logout');
     } catch (error) {
       // 即使后端登出失败，也继续执行本地清理
       console.error('Logout API error:', error);
