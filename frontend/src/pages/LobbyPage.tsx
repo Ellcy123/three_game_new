@@ -133,10 +133,21 @@ const LobbyPage: React.FC = () => {
 
   /**
    * 组件挂载时加载房间列表和检查当前房间状态
+   * 并设置自动刷新
    */
   useEffect(() => {
     checkExistingRoom();
     loadRooms();
+
+    // 每30秒自动刷新房间列表
+    const refreshInterval = setInterval(() => {
+      loadRooms();
+    }, 30000);
+
+    // 清理定时器
+    return () => {
+      clearInterval(refreshInterval);
+    };
   }, []);
 
   /**
@@ -382,7 +393,19 @@ const LobbyPage: React.FC = () => {
       navigate(`/room/${room.id}`);
     } catch (err: any) {
       console.error('加入房间失败:', err);
-      // 错误已经通过 useEffect 处理
+
+      // 如果是房间不存在的错误，关闭对话框并刷新列表
+      if (err?.message?.includes('房间不存在') || err?.message?.includes('不存在')) {
+        handleCloseJoinDialog();
+        setSnackbarMessage('该房间已不存在，正在刷新列表...');
+        setSnackbarOpen(true);
+
+        // 延迟刷新，让用户看到提示
+        setTimeout(() => {
+          loadRooms();
+        }, 1000);
+      }
+      // 其他错误已经通过 useEffect 处理
     } finally {
       isJoiningRoom.current = false;
     }
@@ -461,7 +484,14 @@ const LobbyPage: React.FC = () => {
       navigate(`/room/${room.id}`);
     } catch (err: any) {
       console.error('加入房间失败:', err);
-      // 错误已经通过 useEffect 处理
+
+      // 如果是房间不存在的错误，关闭对话框并提示
+      if (err?.message?.includes('房间不存在') || err?.message?.includes('不存在')) {
+        handleCloseRoomCodeDialog();
+        setSnackbarMessage('该房间已不存在，请检查房间码是否正确');
+        setSnackbarOpen(true);
+      }
+      // 其他错误已经通过 useEffect 处理
     } finally {
       isJoiningRoom.current = false;
     }

@@ -10,6 +10,7 @@
     "db:init": "node scripts/init-database.js",
     "db:init:railway": "node scripts/init-railway-db.js",
     "db:migrate:character": "node scripts/migrate-character-nullable.js",
+    "db:check:rooms": "node scripts/check-rooms.js",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
