@@ -1,60 +1,31 @@
 /**
  * 游戏相关类型定义（前端）
  *
- * 与后端类型保持同步
+ * 注意：这个文件定义了前端需要的游戏类型
+ * CharacterType 从 room.types 导入并重新导出
  */
 
-/**
- * 角色类型
- */
-export enum CharacterType {
-  CAT = 'cat',
-  DOG = 'dog',
-  TURTLE = 'turtle',
-}
+import type { CharacterType } from './room.types';
+export type { CharacterType };
+
+// ==================== 操作类型 ====================
 
 /**
- * 玩家状态枚举
+ * 操作类型
  */
-export enum PlayerStatus {
-  ACTIVE = 'active',
-  TRAPPED = 'trapped',
-  DISCONNECTED = 'disconnected',
-  DEAD = 'dead',
-}
+export type ActionType =
+  | 'item_combination'
+  | 'character_interaction'
+  | 'character_to_character'
+  | 'password_input'
+  | 'explore_area'
+  | 'system'
+  | 'combination'; // 前端使用的组合操作类型
+
+// ==================== 游戏状态 ====================
 
 /**
- * 玩家被困位置
- */
-export enum TrappedLocation {
-  SUITCASE = 'suitcase',
-  CAGE = 'cage',
-  NONE = 'none',
-}
-
-/**
- * 道具状态
- */
-export enum ItemStatus {
-  NORMAL = 'normal',
-  DAMAGED = 'damaged',
-  USED = 'used',
-  DISAPPEARED = 'disappeared',
-}
-
-/**
- * 游戏会话状态
- */
-export enum GameSessionStatus {
-  WAITING = 'waiting',
-  PLAYING = 'playing',
-  PAUSED = 'paused',
-  COMPLETED = 'completed',
-  ENDED = 'ended',
-}
-
-/**
- * 玩家状态接口
+ * 玩家状态接口（简化版）
  */
 export interface PlayerState {
   id: string;
@@ -62,22 +33,22 @@ export interface PlayerState {
   character: CharacterType;
   hp: number;
   maxHp: number;
-  status: PlayerStatus;
-  trappedLocation?: TrappedLocation;
-  canAct: boolean;
+  status?: string;
+  canAct?: boolean;
   socketId?: string;
+  trappedLocation?: string; // 被困位置（如 'suitcase', 'cage', 'none'）
 }
 
 /**
- * 道具接口
+ * 道具接口（简化版）
  */
 export interface GameItem {
   id: string;
   name: string;
   description?: string;
-  status: ItemStatus;
-  isKeyItem: boolean;
-  obtainedAt?: number;
+  status?: string;
+  isKeyItem?: boolean; // 是否为关键道具
+  obtainedAt?: number; // 获得时间戳
 }
 
 /**
@@ -87,17 +58,6 @@ export interface CollectedLetter {
   letter: string;
   collectedAt: number;
   source: string;
-}
-
-/**
- * 游戏标志
- */
-export interface GameFlags {
-  smallRoomUnlocked: boolean;
-  suitcaseOpened: boolean;
-  cageOpened: boolean;
-  computerWorking: boolean;
-  [key: string]: boolean | number | string;
 }
 
 /**
@@ -111,47 +71,20 @@ export interface GameState {
   inventory: GameItem[];
   unlockedAreas: string[];
   collectedLetters: CollectedLetter[];
-  flags: GameFlags;
+  flags: Record<string, boolean | number | string>;
   triggeredEvents: string[];
   currentTurn?: string;
   startedAt: number;
   lastUpdatedAt: number;
 }
 
-/**
- * 操作类型
- */
-export enum ActionType {
-  ITEM_COMBINATION = 'item_combination',
-  CHARACTER_INTERACTION = 'character_interaction',
-  CHARACTER_TO_CHARACTER = 'character_to_character',
-  PASSWORD_INPUT = 'password_input',
-  EXPLORE_AREA = 'explore_area',
-  SYSTEM = 'system',
-}
-
-/**
- * 效果类型
- */
-export enum EffectType {
-  OBTAIN_ITEM = 'obtain_item',
-  MODIFY_HP = 'modify_hp',
-  SET_FLAG = 'set_flag',
-  UNLOCK_AREA = 'unlock_area',
-  UPDATE_ITEM_STATUS = 'update_item_status',
-  UPDATE_PLAYER_STATUS = 'update_player_status',
-  COLLECT_LETTER = 'collect_letter',
-  SHOW_PASSWORD_PROMPT = 'show_password_prompt',
-  TRIGGER_DIALOGUE = 'trigger_dialogue',
-  PLAY_SOUND = 'play_sound',
-  PLAY_ANIMATION = 'play_animation',
-}
+// ==================== 操作结果 ====================
 
 /**
  * 游戏效果接口
  */
 export interface GameEffect {
-  type: EffectType;
+  type: string;
   target?: string;
   value?: any;
   description?: string;
@@ -186,18 +119,19 @@ export interface ActionResult {
   timestamp: number;
 }
 
+// ==================== 事件日志 ====================
+
 /**
  * 事件日志类型
  */
-export enum EventLogType {
-  SYSTEM = 'system',
-  ACTION = 'action',
-  DIALOGUE = 'dialogue',
-  ERROR = 'error',
-  HINT = 'hint',
-  HP_CHANGE = 'hp_change',
-  ITEM_OBTAINED = 'item_obtained',
-}
+export type EventLogType =
+  | 'system'
+  | 'action'
+  | 'dialogue'
+  | 'error'
+  | 'hint'
+  | 'hp_change'
+  | 'item_obtained';
 
 /**
  * 事件日志条目
@@ -211,6 +145,18 @@ export interface EventLogEntry {
   timestamp: number;
   metadata?: Record<string, any>;
 }
+
+// ==================== 游戏会话 ====================
+
+/**
+ * 游戏会话状态
+ */
+export type GameSessionStatus =
+  | 'waiting'
+  | 'playing'
+  | 'paused'
+  | 'completed'
+  | 'ended';
 
 /**
  * 游戏会话接口
@@ -227,31 +173,31 @@ export interface GameSession {
   lastActivityAt: number;
 }
 
+// ==================== WebSocket 请求/响应类型 ====================
+
 /**
- * WebSocket 游戏操作请求
+ * 游戏操作请求
  */
 export interface GameActionRequest {
   room_id: string;
-  action_type: ActionType | 'combination';
+  action_type: ActionType;
   item1?: string;
   item2?: string;
   raw_input?: string;
-  data?: any;
 }
 
 /**
- * WebSocket 游戏操作结果响应
+ * 游戏操作结果响应
  */
 export interface GameActionResultResponse {
   player_id: string;
   player_name: string;
-  action_type: ActionType | 'combination';
+  action_type: ActionType;
   result: ActionResult;
-  timestamp: number;
 }
 
 /**
- * WebSocket 游戏状态更新响应
+ * 游戏状态更新响应
  */
 export interface GameStateUpdateResponse {
   state: GameState;
@@ -259,13 +205,13 @@ export interface GameStateUpdateResponse {
 }
 
 /**
- * 操作历史记录
+ * 操作历史条目
  */
 export interface ActionHistoryEntry {
   id: string;
   playerId: string;
   playerName: string;
-  actionType: ActionType | 'combination';
+  actionType: ActionType;
   input: string;
   result: ActionResult;
   timestamp: number;

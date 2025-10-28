@@ -198,19 +198,43 @@ export function registerRoomHandlers(io: any, socket: AuthenticatedSocket): void
         // ========================================
         // 4. 使用 RoomService 离开房间（处理数据库逻辑）
         // ========================================
-        await roomService.leaveRoom({
+        const result = await roomService.leaveRoom({
           roomId: data.room_id,
           playerId: socket.userId,
         });
 
         // ========================================
-        // 5. 广播给房间内的其他玩家
+        // 5. 根据情况广播不同的事件
         // ========================================
-        socket.to(data.room_id).emit('room:player_left', {
-          user_id: socket.userId,
-          username: socket.username,
-          timestamp: Date.now(),
-        });
+        if (result.roomDismissed) {
+          // 房间被解散，通知所有人（包括已离开的房主）
+          io.to(data.room_id).emit('room:dismissed', {
+            room_id: data.room_id,
+            dismissed_by: socket.userId,
+            dismissed_by_username: socket.username,
+            reason: 'host_left',
+            message: '房主已离开，房间已解散',
+            timestamp: Date.now(),
+          });
+          logger.info(`🏠 房间 ${data.room_id} 已解散（房主离开）`);
+        } else if (result.newHostId) {
+          // 房主转移，通知房间内所有玩家
+          io.to(data.room_id).emit('room:host_changed', {
+            room_id: data.room_id,
+            old_host_id: socket.userId,
+            new_host_id: result.newHostId,
+            message: '房主已离开，房主权限已转移',
+            timestamp: Date.now(),
+          });
+          logger.info(`👑 房间 ${data.room_id} 房主已转移至 ${result.newHostId}`);
+        } else {
+          // 普通玩家离开
+          socket.to(data.room_id).emit('room:player_left', {
+            user_id: socket.userId,
+            username: socket.username,
+            timestamp: Date.now(),
+          });
+        }
 
         // ========================================
         // 6. 返回成功响应
@@ -218,6 +242,7 @@ export function registerRoomHandlers(io: any, socket: AuthenticatedSocket): void
         callback?.({
           success: true,
           message: '成功离开房间',
+          roomDismissed: result.roomDismissed,
         });
 
         logger.info(`✅ 用户 ${socket.username} 成功离开房间: ${data.room_id}`);

@@ -245,6 +245,42 @@ const RoomPage: React.FC = () => {
     }, 1500);
   }, [navigate, showSnackbar]);
 
+  /**
+   * 处理房间解散事件
+   */
+  const handleRoomDismissed = useCallback((data: any) => {
+    console.log('[RoomPage] 房间已解散:', data);
+    showSnackbar(data.message || '房间已解散', 'warning');
+
+    // 延迟返回大厅
+    setTimeout(() => {
+      navigate('/lobby');
+    }, 2000);
+  }, [navigate, showSnackbar]);
+
+  /**
+   * 处理房主转移事件
+   */
+  const handleHostChanged = useCallback((data: any) => {
+    console.log('[RoomPage] 房主已转移:', data);
+
+    if (currentRoom) {
+      // 更新房间信息，设置新房主
+      const updatedRoom = {
+        ...currentRoom,
+        creatorId: data.new_host_id,
+      };
+      setCurrentRoom(updatedRoom);
+
+      // 如果当前用户是新房主，显示特殊提示
+      if (data.new_host_id === user?.id) {
+        showSnackbar('您已成为新的房主', 'success');
+      } else {
+        showSnackbar(data.message || '房主已转移', 'info');
+      }
+    }
+  }, [currentRoom, setCurrentRoom, user, showSnackbar]);
+
   // ========================================
   // WebSocket 事件监听设置
   // ========================================
@@ -260,6 +296,8 @@ const RoomPage: React.FC = () => {
     on('room:player_reconnected', handlePlayerReconnected);
     on('room:player_ready_changed', handlePlayerReadyChanged);
     on('room:character_selected', handleCharacterSelected);
+    on('room:dismissed', handleRoomDismissed);
+    on('room:host_changed', handleHostChanged);
     on('game:started', handleGameStarted);
 
     // 清理监听器
@@ -271,6 +309,8 @@ const RoomPage: React.FC = () => {
       off('room:player_reconnected', handlePlayerReconnected);
       off('room:player_ready_changed', handlePlayerReadyChanged);
       off('room:character_selected', handleCharacterSelected);
+      off('room:dismissed', handleRoomDismissed);
+      off('room:host_changed', handleHostChanged);
       off('game:started', handleGameStarted);
     };
   }, [
@@ -283,6 +323,8 @@ const RoomPage: React.FC = () => {
     handlePlayerReconnected,
     handlePlayerReadyChanged,
     handleCharacterSelected,
+    handleRoomDismissed,
+    handleHostChanged,
     handleGameStarted,
   ]);
 

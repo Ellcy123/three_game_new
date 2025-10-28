@@ -276,13 +276,15 @@ export const leaveRoom = asyncHandler(
       };
 
       // 5. 调用服务离开房间
-      await roomService.leaveRoom(leaveRoomRequest);
+      const result = await roomService.leaveRoom(leaveRoomRequest);
 
       // 6. 返回成功响应
       res.status(200).json({
         success: true,
         data: {
           message: '成功离开房间',
+          roomDismissed: result.roomDismissed,
+          newHostId: result.newHostId,
         },
       } as ApiResponse);
     } catch (error) {

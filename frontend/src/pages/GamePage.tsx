@@ -32,17 +32,15 @@ import {
   Divider,
   List,
   ListItem,
-  ListItemText,
   InputAdornment,
   Badge,
-  Grid,
+  Stack,
 } from '@mui/material';
 import {
   Send as SendIcon,
   Favorite as HeartIcon,
   FavoriteBorder as HeartOutlineIcon,
   Inventory as InventoryIcon,
-  ContentCopy as CopyIcon,
   Info as InfoIcon,
   ExitToApp as ExitIcon,
   Chat as ChatIcon,
@@ -62,8 +60,8 @@ import {
   useGameError,
 } from '../store/gameStore';
 import useSocket from '../hooks/useSocket';
-import type { CharacterType, ActionType } from '../types/game.types';
-import { CharacterType as CharacterTypeEnum } from '../types/game.types';
+import type { CharacterType } from '../types/game.types';
+import { CharacterType as CharacterTypeEnum } from '../types/room.types';
 
 /**
  * 角色信息配置（游戏中显示真实身份）
@@ -359,14 +357,14 @@ const GamePage: React.FC = () => {
           玩家状态
         </Typography>
 
-        <Grid container spacing={2}>
+        <Stack direction="row" spacing={2} flexWrap="wrap" justifyContent="space-between">
           {players.map((player) => {
             const charInfo = CharacterInfo[player.character];
             const isCurrentPlayer = player.id === user?.id;
             const hpPercentage = (player.hp / player.maxHp) * 100;
 
             return (
-              <Grid item xs={12} sm={4} key={player.id}>
+              <Box key={player.id} sx={{ flex: '1 1 300px', minWidth: 300, maxWidth: 400 }}>
                 <Card
                   elevation={isCurrentPlayer ? 6 : 2}
                   sx={{
@@ -435,10 +433,10 @@ const GamePage: React.FC = () => {
                     )}
                   </CardContent>
                 </Card>
-              </Grid>
+              </Box>
             );
           })}
-        </Grid>
+        </Stack>
       </Paper>
     );
   };

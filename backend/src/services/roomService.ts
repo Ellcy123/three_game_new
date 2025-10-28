@@ -383,9 +383,12 @@ export class RoomService {
    * 3. 更新缓存
    *
    * @param request 离开房间请求
-   * @returns Promise<void>
+   * @returns Promise<{ roomDismissed: boolean; newHostId?: string }> 返回房间是否被解散以及新房主ID
    */
-  async leaveRoom(request: LeaveRoomRequest): Promise<void> {
+  async leaveRoom(request: LeaveRoomRequest): Promise<{
+    roomDismissed: boolean;
+    newHostId?: string;
+  }> {
     return transaction(async (client: PoolClient) => {
       console.log('🔍 离开房间请求:', {
         roomId: request.roomId,
@@ -451,11 +454,15 @@ export class RoomService {
       console.log(`🔍 更新后的玩家数: ${remainingPlayers}`);
 
       // 5. 处理房主离开的情况
+      let roomDismissed = false;
+      let newHostId: string | undefined;
+
       if (isHost) {
         if (remainingPlayers === 0) {
           // 房间为空，删除房间
           await client.query('DELETE FROM game_rooms WHERE room_id = $1', [request.roomId]);
           await deleteCache(this.getCacheKey(request.roomId));
+          roomDismissed = true;
           console.log(`✓ 房间 ${request.roomId} 已关闭（无剩余玩家）`);
         } else {
           // 转移房主给下一个玩家
@@ -468,7 +475,7 @@ export class RoomService {
           );
 
           if (newHostResult.rows.length > 0 && newHostResult.rows[0]) {
-            const newHostId = newHostResult.rows[0].user_id;
+            newHostId = String(newHostResult.rows[0].user_id);
             await client.query(
               'UPDATE game_rooms SET host_user_id = $1 WHERE room_id = $2',
               [newHostId, request.roomId]
@@ -490,6 +497,8 @@ export class RoomService {
       await deleteCache(this.ROOM_LIST_CACHE_KEY);
 
       console.log(`✓ 玩家 ${request.playerId} 离开房间 ${request.roomId}`);
+
+      return { roomDismissed, newHostId };
     });
   }
 
