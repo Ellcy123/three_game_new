@@ -475,15 +475,16 @@ const LobbyPage: React.FC = () => {
             </Box>
           )}
 
-          {/* 房间列表网格 - PC端4-6列布局 */}
+          {/* 房间列表网格 - PC端固定4列布局 */}
           {rooms.length > 0 && (
-            <Grid container spacing={3}>
+            <Grid container spacing={3} columns={12}>
               {rooms.map((room) => (
                 <Grid size={3} key={room.id}>
                 <Card
                   elevation={2}
                   sx={{
                     height: '100%',
+                    minWidth: 250,
                     display: 'flex',
                     flexDirection: 'column',
                     transition: 'transform 0.2s, box-shadow 0.2s',

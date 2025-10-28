@@ -480,7 +480,7 @@ const RoomPage: React.FC = () => {
               选择一个角色开始游戏。你的真实身份将在游戏开始后揭晓！
             </Alert>
 
-            <Grid container spacing={2.5}>
+            <Grid container spacing={2.5} columns={12}>
               {Object.entries(CharacterInfo).map(([charType, info]) => {
                 const character = charType as CharacterType;
                 const isSelected = selectedCharacter === character;
