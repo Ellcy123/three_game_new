@@ -122,3 +122,6 @@ export interface SocketEventData {
   playerId?: string;
   [key: string]: any;
 }
+
+// 导出房间相关类型
+export * from './room.types';

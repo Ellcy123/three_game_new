@@ -6,6 +6,7 @@ import CssBaseline from '@mui/material/CssBaseline';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import LobbyPage from './pages/LobbyPage';
+import RoomPage from './pages/RoomPage';
 
 // 路由保护组件
 import ProtectedRoute from './components/ProtectedRoute';
@@ -59,6 +60,16 @@ function App() {
             element={
               <ProtectedRoute>
                 <LobbyPage />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* 房间页（受保护） */}
+          <Route
+            path="/room/:roomId"
+            element={
+              <ProtectedRoute>
+                <RoomPage />
               </ProtectedRoute>
             }
           />

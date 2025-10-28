@@ -15,6 +15,7 @@ import { getRedisStatus } from '@config/redis';
 
 // 导入路由
 import authRoutes from '@routes/authRoutes';
+import roomRoutes from '@routes/roomRoutes';
 
 // 创建 Express 应用
 const app: Application = express();
@@ -168,7 +169,7 @@ app.get('/api', (_req: Request, res: Response) => {
       endpoints: {
         health: '/health',
         auth: '/api/v1/auth',
-        rooms: '/api/v1/rooms (待实现)',
+        rooms: '/api/v1/rooms',
         game: '/api/v1/game (待实现)',
       },
       documentation: '/api/docs (待实现)',
@@ -183,8 +184,10 @@ app.get('/api', (_req: Request, res: Response) => {
 // v1 认证路由
 app.use('/api/v1/auth', authRoutes);
 
+// v1 房间路由（需要认证）
+app.use('/api/v1/rooms', roomRoutes);
+
 // TODO: 添加更多路由
-// app.use('/api/v1/rooms', roomRoutes);
 // app.use('/api/v1/game', gameRoutes);
 // app.use('/api/v1/users', userRoutes);
 
