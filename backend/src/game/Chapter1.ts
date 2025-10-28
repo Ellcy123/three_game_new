@@ -14,7 +14,6 @@ import {
   ItemCombination,
   Precondition,
   PreconditionType,
-  CharacterType,
   PlayerStatus,
   TrappedLocation,
   ItemStatus,
@@ -2216,7 +2215,7 @@ export class Chapter1 {
    *
    * 当同一个组合有多个版本时，根据当前状态选择最合适的版本
    */
-  private selectBestMatch(combination: ItemCombination, state: GameState): ItemCombination {
+  private selectBestMatch(combination: ItemCombination, _state: GameState): ItemCombination {
     // 当前实现：直接返回找到的组合
     // 未来优化：可以根据前置条件选择最佳匹配
     return combination;
@@ -2228,7 +2227,7 @@ export class Chapter1 {
   private checkSinglePrecondition(
     condition: Precondition,
     state: GameState,
-    actorId: string
+    _actorId: string
   ): { success: boolean; message: string } {
     switch (condition.type) {
       case PreconditionType.HAS_ITEM:
@@ -2334,7 +2333,7 @@ export class Chapter1 {
   /**
    * 应用单个效果
    */
-  private applySingleEffect(effect: GameEffect, state: GameState, actorId: string): Partial<GameState> {
+  private applySingleEffect(effect: GameEffect, state: GameState, _actorId: string): Partial<GameState> {
     const changes: Partial<GameState> = {};
 
     switch (effect.type) {
@@ -2414,8 +2413,8 @@ export class Chapter1 {
 
       // 更新玩家生命值
       const playerIndex = updatedPlayers.findIndex(p => p.id === player.id);
-      if (playerIndex !== -1) {
-        updatedPlayers[playerIndex] = { ...updatedPlayers[playerIndex], hp: newHp };
+      if (playerIndex !== -1 && updatedPlayers[playerIndex]) {
+        updatedPlayers[playerIndex]!.hp = newHp;
       }
 
       // 记录生命值变化
@@ -2434,7 +2433,7 @@ export class Chapter1 {
   /**
    * 获取重复操作的提示信息
    */
-  private getRepeatedActionMessage(combination: ItemCombination, state: GameState): ActionResult {
+  private getRepeatedActionMessage(combination: ItemCombination, _state: GameState): ActionResult {
     // 根据组合ID返回特定的重复提示
     let message = '';
 

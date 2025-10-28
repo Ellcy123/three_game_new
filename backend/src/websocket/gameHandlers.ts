@@ -12,7 +12,6 @@
 import { Socket, Server } from 'socket.io';
 import { logger } from '../utils/logger';
 import { roomService } from '../services/roomService';
-import { getCache, setCache } from '../config/redis';
 import { GameEngine, createGameEngine } from '../game/GameEngine';
 import { Chapter1, createChapter1 } from '../game/Chapter1';
 import {
@@ -20,7 +19,6 @@ import {
   GameAction,
   ActionResult,
   ActionType,
-  GameSession,
   CharacterType,
 } from '../types/game.types';
 

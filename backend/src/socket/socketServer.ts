@@ -148,7 +148,9 @@ export function initSocketServer(httpServer: HttpServer): Server {
     registerRoomHandlers(io, socket);
 
     // 游戏事件处理器
-    registerGameHandlers(io, socket);
+    if (io) {
+      registerGameHandlers(io, socket);
+    }
 
     // TODO: 聊天事件处理器（稍后添加）
     // setupChatHandlers(socket);
