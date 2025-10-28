@@ -26,7 +26,10 @@
       "Bash(npm create:*)",
       "Bash(tasklist:*)",
       "Bash(powershell Stop-Process -Id 52832 -Force)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []
