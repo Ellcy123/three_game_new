@@ -18,7 +18,6 @@ import {
   Card,
   CardContent,
   CardActions,
-  Grid,
   Chip,
   Dialog,
   DialogTitle,
@@ -475,16 +474,21 @@ const LobbyPage: React.FC = () => {
             </Box>
           )}
 
-          {/* 房间列表网格 - PC端固定4列布局 */}
+          {/* 房间列表网格 - PC端自适应网格布局 */}
           {rooms.length > 0 && (
-            <Grid container spacing={3} columns={12}>
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                gap: 3,
+              }}
+            >
               {rooms.map((room) => (
-                <Grid size={3} key={room.id}>
                 <Card
+                  key={room.id}
                   elevation={2}
                   sx={{
                     height: '100%',
-                    minWidth: 250,
                     display: 'flex',
                     flexDirection: 'column',
                     transition: 'transform 0.2s, box-shadow 0.2s',
@@ -546,9 +550,8 @@ const LobbyPage: React.FC = () => {
                     </Button>
                   </CardActions>
                 </Card>
-                </Grid>
               ))}
-            </Grid>
+            </Box>
           )}
 
           {/* 分页信息 */}
