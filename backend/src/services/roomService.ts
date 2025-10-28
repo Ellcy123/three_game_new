@@ -150,11 +150,19 @@ export class RoomService {
    */
   async joinRoom(request: JoinRoomRequest, userId: string): Promise<GameRoom> {
     return transaction(async (client: PoolClient) => {
+      console.log('🔍 加入房间 - 开始事务:', {
+        requestRoomId: request.roomId,
+        userId,
+        character: request.character,
+      });
+
       // 1. 获取房间信息（支持 room_id 或 room_code）
       let roomResult;
 
-      // 判断是6位房间码还是UUID
+      // 判断是6位房间码还是UUID（或数字ID）
       const isRoomCode = /^[A-Z0-9]{6}$/i.test(request.roomId);
+
+      console.log(`🔍 识别为${isRoomCode ? '房间码' : '房间ID'}: ${request.roomId}`);
 
       if (isRoomCode) {
         // 通过房间码查询
@@ -194,12 +202,24 @@ export class RoomService {
         );
       }
 
+      console.log(`🔍 查询结果: 找到 ${roomResult.rows.length} 个房间`);
+
       if (roomResult.rows.length === 0 || !roomResult.rows[0]) {
+        console.error(`❌ 房间不存在: ${request.roomId}`);
         throw new Error('房间不存在');
       }
 
       const room = roomResult.rows[0];
       const actualRoomId = room.room_id; // 使用实际的 room_id
+
+      console.log('🔍 找到房间:', {
+        actualRoomId,
+        roomCode: room.room_code,
+        roomName: room.room_name,
+        status: room.room_status,
+        currentPlayers: room.current_players,
+        maxPlayers: room.max_players,
+      });
 
       // 2. 验证房间状态
       if (room.room_status !== RoomStatus.WAITING) {
@@ -222,13 +242,27 @@ export class RoomService {
       }
 
       // 5. 加入房间
-      await client.query(
-        `INSERT INTO room_players (room_id, user_id, character_type, player_status)
-         VALUES ($1, $2, $3, 'active')`,
-        [actualRoomId, userId, request.character]
-      );
+      console.log('🔍 准备插入玩家记录:', {
+        actualRoomId,
+        userId,
+        character: request.character,
+        username: request.username,
+      });
+
+      try {
+        await client.query(
+          `INSERT INTO room_players (room_id, user_id, character_type, player_status)
+           VALUES ($1, $2, $3, 'active')`,
+          [actualRoomId, userId, request.character]
+        );
+      } catch (insertError: any) {
+        console.error('❌ 插入玩家记录失败:', insertError.message);
+        console.error('详细错误:', insertError);
+        throw new Error(`加入房间失败: ${insertError.message}`);
+      }
 
       // 6. 获取更新后的房间信息
+      console.log('🔍 获取更新后的房间信息...');
       const updatedRoom = await this.getRoomDetails(actualRoomId, client);
 
       // 7. 更新缓存
@@ -257,6 +291,11 @@ export class RoomService {
    */
   async leaveRoom(request: LeaveRoomRequest): Promise<void> {
     return transaction(async (client: PoolClient) => {
+      console.log('🔍 离开房间请求:', {
+        roomId: request.roomId,
+        playerId: request.playerId,
+      });
+
       // 1. 获取房间信息
       const roomResult = await client.query<{
         host_user_id: string;
@@ -271,13 +310,24 @@ export class RoomService {
       }
 
       const room = roomResult.rows[0];
-      const isHost = room.host_user_id === request.playerId;
+      // 转换为字符串进行比较，确保类型一致
+      const isHost = String(room.host_user_id) === String(request.playerId);
+
+      console.log('🔍 房间信息:', {
+        hostUserId: room.host_user_id,
+        playerId: request.playerId,
+        isHost,
+        currentPlayers: room.current_players,
+      });
 
       // 2. 删除玩家记录
+      console.log('🔍 准备删除玩家记录...');
       const deleteResult = await client.query(
         'DELETE FROM room_players WHERE room_id = $1 AND user_id = $2',
         [request.roomId, request.playerId]
       );
+
+      console.log(`🔍 删除结果: rowCount = ${deleteResult.rowCount}`);
 
       if (deleteResult.rowCount === 0) {
         throw new Error('玩家不在此房间中');
@@ -451,6 +501,8 @@ export class RoomService {
       const roomData = roomResult.rows[0];
 
       // 2. 获取房间玩家列表
+      console.log('🔍 查询房间玩家列表, roomId:', roomId);
+
       const playersResult = await dbClient.query<{
         user_id: string;
         character_type: string;
@@ -466,6 +518,8 @@ export class RoomService {
          ORDER BY rp.joined_at ASC`,
         [roomId]
       );
+
+      console.log(`🔍 找到 ${playersResult.rows.length} 个玩家`);
 
       const players: RoomPlayer[] = (playersResult.rows || []).map((player) => ({
         id: player.user_id,
