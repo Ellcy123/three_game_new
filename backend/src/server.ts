@@ -18,6 +18,7 @@ import { initSocketServer, closeSocketServer } from './socket/socketServer';
 import { testConnection, closePool } from '@config/database';
 import { connectRedis, testRedisConnection, closeRedis } from '@config/redis';
 import { initDatabase } from '@config/initDatabase';
+import { runMigrations } from './utils/migrations';
 
 // ========================================
 // 加载环境变量
@@ -64,6 +65,19 @@ async function startServer() {
       logger.info('✅ 数据库表结构初始化完成');
     } catch (error) {
       logger.error('❌ 数据库表结构初始化失败:', error);
+      logger.error('   服务器将继续运行，但可能无法正常工作');
+    }
+    logger.info('');
+
+    // ========================================
+    // 1.6. 运行数据库迁移
+    // ========================================
+    logger.info('🔄 正在检查数据库迁移...');
+    try {
+      await runMigrations();
+      logger.info('✅ 数据库迁移完成');
+    } catch (error) {
+      logger.error('❌ 数据库迁移失败:', error);
       logger.error('   服务器将继续运行，但可能无法正常工作');
     }
     logger.info('');
