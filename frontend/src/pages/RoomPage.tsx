@@ -215,6 +215,24 @@ const RoomPage: React.FC = () => {
   }, [currentRoom, setCurrentRoom, user, showSnackbar]);
 
   /**
+   * 处理角色选择事件
+   */
+  const handleCharacterSelected = useCallback((data: any) => {
+    console.log('[RoomPage] 玩家选择角色:', data);
+
+    if (data.room) {
+      // 更新整个房间状态（包含所有玩家信息）
+      setCurrentRoom(data.room);
+
+      // 如果是其他玩家，显示提示
+      if (data.user_id !== user?.id) {
+        const characterLabel = CharacterInfo[data.character_type as CharacterType]?.label || '角色';
+        showSnackbar(`${data.username} 选择了 ${characterLabel}`, 'info');
+      }
+    }
+  }, [setCurrentRoom, user, showSnackbar]);
+
+  /**
    * 处理游戏开始事件
    */
   const handleGameStarted = useCallback((data: any) => {
@@ -241,6 +259,7 @@ const RoomPage: React.FC = () => {
     on('room:player_disconnected', handlePlayerDisconnected);
     on('room:player_reconnected', handlePlayerReconnected);
     on('room:player_ready_changed', handlePlayerReadyChanged);
+    on('room:character_selected', handleCharacterSelected);
     on('game:started', handleGameStarted);
 
     // 清理监听器
@@ -251,6 +270,7 @@ const RoomPage: React.FC = () => {
       off('room:player_disconnected', handlePlayerDisconnected);
       off('room:player_reconnected', handlePlayerReconnected);
       off('room:player_ready_changed', handlePlayerReadyChanged);
+      off('room:character_selected', handleCharacterSelected);
       off('game:started', handleGameStarted);
     };
   }, [
@@ -262,6 +282,7 @@ const RoomPage: React.FC = () => {
     handlePlayerDisconnected,
     handlePlayerReconnected,
     handlePlayerReadyChanged,
+    handleCharacterSelected,
     handleGameStarted,
   ]);
 
@@ -277,15 +298,16 @@ const RoomPage: React.FC = () => {
         await fetchRoomDetails(roomId);
 
         // 2. 发送 room:join 事件（通过 WebSocket）
-        if (isConnected && !hasJoinedRoom && selectedCharacter) {
+        // 注：角色选择现在是可选的，玩家可以在房间内选择角色
+        if (isConnected && !hasJoinedRoom) {
           console.log('[RoomPage] 发送 room:join 事件');
 
           emit(
             'room:join',
             {
               room_id: roomId,
-              character_type: selectedCharacter,
               character_name: user.username,
+              // character_type 不再必需，玩家进入房间后再选择
             },
             (response: any) => {
               if (response.success) {
@@ -311,7 +333,7 @@ const RoomPage: React.FC = () => {
     };
 
     initRoom();
-  }, [roomId, user, isConnected, selectedCharacter]);
+  }, [roomId, user, isConnected, hasJoinedRoom, emit, fetchRoomDetails, setCurrentRoom, showSnackbar, navigate]);
 
   // ========================================
   // 组件卸载时离开房间
@@ -385,11 +407,32 @@ const RoomPage: React.FC = () => {
       return;
     }
 
-    setSelectedCharacter(character);
-    showSnackbar(`已选择 ${CharacterInfo[character].label}`, 'success');
+    if (!roomId || !isConnected) {
+      showSnackbar('未连接到服务器', 'error');
+      return;
+    }
 
-    // 如果已经在房间中，需要通过 WebSocket 更新角色
-    // TODO: 实现角色更新 WebSocket 事件
+    // 通过 WebSocket 更新角色
+    emit(
+      'room:select_character',
+      {
+        room_id: roomId,
+        character_type: character,
+      },
+      (response: any) => {
+        if (response.success) {
+          setSelectedCharacter(character);
+          showSnackbar(`已选择 ${CharacterInfo[character].label}`, 'success');
+
+          // 更新本地房间状态
+          if (response.data.room) {
+            setCurrentRoom(response.data.room);
+          }
+        } else {
+          showSnackbar(response.error?.message || '选择角色失败', 'error');
+        }
+      }
+    );
   };
 
   /**

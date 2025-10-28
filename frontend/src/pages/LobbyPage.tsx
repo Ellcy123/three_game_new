@@ -118,7 +118,6 @@ const LobbyPage: React.FC = () => {
 
   // 加入房间表单
   const [joinForm, setJoinForm] = useState({
-    character: CharacterTypeConst.CAT as CharacterType,
     password: '',
   });
 
@@ -126,7 +125,6 @@ const LobbyPage: React.FC = () => {
   const [roomCodeDialogOpen, setRoomCodeDialogOpen] = useState(false);
   const [roomCodeForm, setRoomCodeForm] = useState({
     roomCode: '',
-    character: CharacterTypeConst.CAT as CharacterType,
     password: '',
   });
 
@@ -318,7 +316,6 @@ const LobbyPage: React.FC = () => {
   const handleOpenJoinDialog = (room: RoomListItem) => {
     setSelectedRoom(room);
     setJoinForm({
-      character: CharacterTypeConst.CAT,
       password: '',
     });
     setFormErrors({});
@@ -373,7 +370,6 @@ const LobbyPage: React.FC = () => {
 
       const room = await joinRoom({
         roomId: String(selectedRoom.id), // 确保转换为字符串
-        character: joinForm.character,
         username: user.username,
         password: joinForm.password || undefined,
       });
@@ -398,7 +394,6 @@ const LobbyPage: React.FC = () => {
   const handleOpenRoomCodeDialog = () => {
     setRoomCodeForm({
       roomCode: '',
-      character: CharacterTypeConst.CAT,
       password: '',
     });
     setFormErrors({});
@@ -454,7 +449,6 @@ const LobbyPage: React.FC = () => {
 
       const room = await joinRoom({
         roomId: roomCodeForm.roomCode.trim().toUpperCase(),
-        character: roomCodeForm.character,
         username: user.username,
         password: roomCodeForm.password || undefined,
       });
@@ -854,28 +848,10 @@ const LobbyPage: React.FC = () => {
                 <Typography variant="body2">
                   <strong>当前人数：</strong>{selectedRoom.currentPlayers}/{selectedRoom.maxPlayers}
                 </Typography>
+                <Typography variant="body2" sx={{ mt: 1, fontStyle: 'italic' }}>
+                  注：加入房间后可在房间内选择角色
+                </Typography>
               </Alert>
-
-              {/* 选择角色 */}
-              <FormControl fullWidth sx={{ mb: 3 }}>
-                <InputLabel>选择角色</InputLabel>
-                <Select
-                  value={joinForm.character}
-                  label="选择角色"
-                  onChange={(e) =>
-                    setJoinForm({ ...joinForm, character: e.target.value as CharacterType })
-                  }
-                >
-                  {CharacterOptions.map((option) => (
-                    <MenuItem key={option.value} value={option.value}>
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <span style={{ marginRight: 8 }}>{option.emoji}</span>
-                        {option.label}
-                      </Box>
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
 
               {/* 房间密码 */}
               {selectedRoom.hasPassword && (
@@ -940,29 +916,12 @@ const LobbyPage: React.FC = () => {
               }}
             />
 
-            {/* 选择角色 */}
-            <FormControl fullWidth sx={{ mb: 3 }}>
-              <InputLabel>选择角色</InputLabel>
-              <Select
-                value={roomCodeForm.character}
-                label="选择角色"
-                onChange={(e) =>
-                  setRoomCodeForm({
-                    ...roomCodeForm,
-                    character: e.target.value as CharacterType,
-                  })
-                }
-              >
-                {CharacterOptions.map((option) => (
-                  <MenuItem key={option.value} value={option.value}>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <span style={{ marginRight: 8 }}>{option.emoji}</span>
-                      {option.label}
-                    </Box>
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            {/* 提示信息 */}
+            <Alert severity="info" sx={{ mb: 3 }}>
+              <Typography variant="body2">
+                加入房间后可在房间内选择角色
+              </Typography>
+            </Alert>
 
             {/* 房间密码（可选） */}
             <TextField

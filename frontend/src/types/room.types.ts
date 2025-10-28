@@ -61,9 +61,15 @@ export interface CreateRoomRequest {
 // 加入房间请求
 export interface JoinRoomRequest {
   roomId: string;
-  character: CharacterType;
+  character?: CharacterType; // 可选：加入时可以不选角色，在房间内再选
   username: string;
   password?: string;
+}
+
+// 选择角色请求
+export interface SelectCharacterRequest {
+  roomId: string;
+  character: CharacterType;
 }
 
 // 房间列表项（用于显示房间列表）
