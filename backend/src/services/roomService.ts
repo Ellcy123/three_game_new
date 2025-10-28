@@ -255,6 +255,19 @@ export class RoomService {
            VALUES ($1, $2, $3, 'active')`,
           [actualRoomId, userId, request.character]
         );
+
+        // 手动更新房间玩家计数（不依赖触发器）
+        console.log('🔍 手动更新房间玩家计数...');
+        await client.query(
+          `UPDATE game_rooms
+           SET current_players = (
+             SELECT COUNT(*) FROM room_players
+             WHERE room_id = $1 AND player_status != 'dead'
+           )
+           WHERE room_id = $1`,
+          [actualRoomId]
+        );
+        console.log('✓ 已更新房间玩家计数');
       } catch (insertError: any) {
         console.error('❌ 插入玩家记录失败:', insertError.message);
         console.error('详细错误:', insertError);
@@ -333,15 +346,28 @@ export class RoomService {
         throw new Error('玩家不在此房间中');
       }
 
-      // 3. 获取剩余玩家数（触发器已自动更新 current_players）
+      // 3. 手动更新房间玩家计数（不依赖触发器）
+      console.log('🔍 手动更新房间玩家计数...');
+      await client.query(
+        `UPDATE game_rooms
+         SET current_players = (
+           SELECT COUNT(*) FROM room_players
+           WHERE room_id = $1 AND player_status != 'dead'
+         )
+         WHERE room_id = $1`,
+        [request.roomId]
+      );
+
+      // 4. 获取剩余玩家数
       const updatedRoom = await client.query<{ current_players: number }>(
         'SELECT current_players FROM game_rooms WHERE room_id = $1',
         [request.roomId]
       );
 
       const remainingPlayers = updatedRoom.rows[0]?.current_players || 0;
+      console.log(`🔍 更新后的玩家数: ${remainingPlayers}`);
 
-      // 4. 处理房主离开的情况
+      // 5. 处理房主离开的情况
       if (isHost) {
         if (remainingPlayers === 0) {
           // 房间为空，删除房间
@@ -377,7 +403,7 @@ export class RoomService {
         await this.cacheRoom(updatedRoomDetails);
       }
 
-      // 5. 清除房间列表缓存
+      // 6. 清除房间列表缓存
       await deleteCache(this.ROOM_LIST_CACHE_KEY);
 
       console.log(`✓ 玩家 ${request.playerId} 离开房间 ${request.roomId}`);
