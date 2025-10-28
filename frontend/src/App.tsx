@@ -12,7 +12,7 @@ import RoomPage from './pages/RoomPage';
 import ProtectedRoute from './components/ProtectedRoute';
 
 /**
- * Material-UI 主题配置
+ * Material-UI 主题配置（PC桌面端专用）
  */
 const theme = createTheme({
   palette: {
@@ -33,6 +33,17 @@ const theme = createTheme({
       'Arial',
       'sans-serif',
     ].join(','),
+  },
+  // 全局组件默认值 - 强制PC布局
+  components: {
+    MuiCssBaseline: {
+      styleOverrides: {
+        body: {
+          minWidth: '1440px',
+          overflowX: 'auto',
+        },
+      },
+    },
   },
 });
 

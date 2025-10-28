@@ -24,10 +24,10 @@ a:hover {
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
+  /* 强制PC桌面布局，最小宽度1440px */
+  min-width: 1440px;
   min-height: 100vh;
+  overflow-x: auto;
 }
 
 h1 {
