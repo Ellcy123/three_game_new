@@ -313,7 +313,7 @@ const LobbyPage: React.FC = () => {
       isJoiningRoom.current = true;
 
       const room = await joinRoom({
-        roomId: selectedRoom.id,
+        roomId: String(selectedRoom.id), // 确保转换为字符串
         character: joinForm.character,
         username: user.username,
         password: joinForm.password || undefined,

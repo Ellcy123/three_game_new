@@ -147,9 +147,17 @@ export const joinRoom = asyncHandler(
       console.log('🔍 加入房间请求 - userId:', userId);
       console.log('🔍 请求体:', JSON.stringify(req.body, null, 2));
 
-      const { roomId, character, username, password } = req.body;
+      let { roomId, character, username, password } = req.body;
 
-      if (!roomId || typeof roomId !== 'string' || roomId.trim().length === 0) {
+      // 验证并转换 roomId（支持字符串或数字类型）
+      if (roomId === undefined || roomId === null || roomId === '') {
+        throw new AppError('房间ID不能为空', 400, 'INVALID_ROOM_ID');
+      }
+
+      // 将 roomId 转换为字符串
+      roomId = String(roomId).trim();
+
+      if (roomId.length === 0) {
         throw new AppError('房间ID不能为空', 400, 'INVALID_ROOM_ID');
       }
 
@@ -232,9 +240,17 @@ export const leaveRoom = asyncHandler(
       }
 
       // 2. 验证请求体
-      const { roomId } = req.body;
+      let { roomId } = req.body;
 
-      if (!roomId || typeof roomId !== 'string' || roomId.trim().length === 0) {
+      // 验证并转换 roomId（支持字符串或数字类型）
+      if (roomId === undefined || roomId === null || roomId === '') {
+        throw new AppError('房间ID不能为空', 400, 'INVALID_ROOM_ID');
+      }
+
+      // 将 roomId 转换为字符串
+      roomId = String(roomId).trim();
+
+      if (roomId.length === 0) {
         throw new AppError('房间ID不能为空', 400, 'INVALID_ROOM_ID');
       }
 
