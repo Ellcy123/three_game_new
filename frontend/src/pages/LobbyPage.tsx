@@ -53,6 +53,7 @@ import type {
   CharacterType,
   CreateRoomRequest,
   RoomListItem,
+  GameRoom,
 } from '../types/room.types';
 import { CharacterType as CharacterTypeConst } from '../types/room.types';
 
@@ -91,6 +92,7 @@ const LobbyPage: React.FC = () => {
     fetchRooms,
     createRoom,
     joinRoom,
+    leaveRoom,
     clearError,
   } = useRoomStore();
 
@@ -100,6 +102,8 @@ const LobbyPage: React.FC = () => {
   // 本地状态
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
+  const [existingRoomDialogOpen, setExistingRoomDialogOpen] = useState(false);
+  const [existingRoomInfo, setExistingRoomInfo] = useState<GameRoom | null>(null);
   const [selectedRoom, setSelectedRoom] = useState<RoomListItem | null>(null);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
@@ -130,11 +134,66 @@ const LobbyPage: React.FC = () => {
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   /**
-   * 组件挂载时加载房间列表
+   * 组件挂载时加载房间列表和检查当前房间状态
    */
   useEffect(() => {
+    checkExistingRoom();
     loadRooms();
   }, []);
+
+  /**
+   * 检查用户是否已在某个房间中
+   */
+  const checkExistingRoom = async () => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/rooms/current`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data.inRoom && data.data.room) {
+          // 用户已在房间中，显示提示对话框
+          setExistingRoomInfo(data.data.room);
+          setExistingRoomDialogOpen(true);
+        }
+      }
+    } catch (err) {
+      console.error('检查当前房间失败:', err);
+    }
+  };
+
+  /**
+   * 返回现有房间
+   */
+  const handleReturnToRoom = () => {
+    if (existingRoomInfo) {
+      navigate(`/room/${existingRoomInfo.id}`);
+    }
+    setExistingRoomDialogOpen(false);
+  };
+
+  /**
+   * 离开现有房间
+   */
+  const handleLeaveExistingRoom = async () => {
+    if (!existingRoomInfo) return;
+
+    try {
+      await leaveRoom(String(existingRoomInfo.id));
+      setSnackbarMessage('已离开房间');
+      setSnackbarOpen(true);
+      setExistingRoomDialogOpen(false);
+      setExistingRoomInfo(null);
+      loadRooms(); // 重新加载房间列表
+    } catch (err: any) {
+      console.error('离开房间失败:', err);
+      setSnackbarMessage('离开房间失败');
+      setSnackbarOpen(true);
+    }
+  };
 
   /**
    * 错误处理
@@ -933,6 +992,47 @@ const LobbyPage: React.FC = () => {
             disabled={isLoading}
           >
             {isLoading ? <CircularProgress size={24} /> : '加入'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* 已存在房间提示对话框 */}
+      <Dialog
+        open={existingRoomDialogOpen}
+        onClose={() => {}}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>检测到您已在房间中</DialogTitle>
+        <DialogContent>
+          <Box sx={{ py: 2 }}>
+            <Typography variant="body1" gutterBottom>
+              您当前已在房间中：
+            </Typography>
+            {existingRoomInfo && (
+              <Box sx={{ mt: 2, p: 2, bgcolor: 'background.default', borderRadius: 1 }}>
+                <Typography variant="subtitle1" fontWeight="bold">
+                  {existingRoomInfo.name}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  房间码: {existingRoomInfo.roomCode}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  玩家: {existingRoomInfo.currentPlayers}/{existingRoomInfo.maxPlayers}
+                </Typography>
+              </Box>
+            )}
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+              您想返回该房间还是离开房间？
+            </Typography>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleLeaveExistingRoom} color="error">
+            离开房间
+          </Button>
+          <Button onClick={handleReturnToRoom} variant="contained">
+            返回房间
           </Button>
         </DialogActions>
       </Dialog>

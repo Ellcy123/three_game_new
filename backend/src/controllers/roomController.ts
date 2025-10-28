@@ -177,6 +177,13 @@ export const joinRoom = asyncHandler(
       const currentRoom = await roomService.getUserCurrentRoom(userId);
 
       if (currentRoom) {
+        console.log(`⚠️  用户 ${userId} 当前在房间中:`, {
+          currentRoomId: currentRoom.id,
+          currentRoomCode: currentRoom.roomCode,
+          currentRoomStatus: currentRoom.status,
+          targetRoomId: roomId,
+        });
+
         // 如果用户已经在目标房间中，直接返回房间信息
         if (currentRoom.id === roomId || currentRoom.roomCode?.toUpperCase() === roomId.trim().toUpperCase()) {
           console.log(`ℹ️  用户 ${userId} 已在房间 ${roomId} 中，返回现有房间信息`);
@@ -190,9 +197,9 @@ export const joinRoom = asyncHandler(
           return;
         }
 
-        // 如果在其他房间中，抛出错误
+        // 如果在其他房间中，抛出错误并提供详细信息
         throw new AppError(
-          '您已在另一个房间中，请先离开当前房间',
+          `您已在另一个房间中（房间码: ${currentRoom.roomCode}），请先离开当前房间`,
           400,
           'ALREADY_IN_ROOM'
         );
