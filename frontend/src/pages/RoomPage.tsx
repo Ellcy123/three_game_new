@@ -12,7 +12,6 @@
 import React, { useEffect, useState } from 'react';
 import {
   Box,
-  Container,
   Paper,
   Typography,
   Button,
@@ -265,113 +264,117 @@ const RoomPage: React.FC = () => {
   };
 
   /**
-   * 渲染玩家槽位
+   * 渲染玩家槽位（横向卡片布局）
    */
   const renderPlayerSlots = () => {
     if (!currentRoom) return null;
 
     const slots = [];
 
-    // 已有玩家
+    // 已有玩家 - 横向卡片
     currentRoom.players.forEach((player) => {
       slots.push(
-        <Grid size={{ xs: 12, md: 4 }} key={player.id}>
-          <Card
-            elevation={3}
-            sx={{
-              height: '100%',
-              border: player.id === user?.id ? 3 : 1,
-              borderColor: player.id === user?.id ? 'primary.main' : 'divider',
-              bgcolor: player.isReady ? 'success.light' : 'background.paper',
-              transition: 'all 0.3s',
-            }}
-          >
-            <CardContent sx={{ textAlign: 'center' }}>
-              {/* 角色图标 */}
-              <Box sx={{ mb: 2 }}>
-                <Avatar
-                  sx={{
-                    width: 80,
-                    height: 80,
-                    fontSize: 40,
-                    bgcolor: CharacterInfo[player.character].color,
-                    mx: 'auto',
-                  }}
-                >
-                  {CharacterInfo[player.character].emoji}
-                </Avatar>
+        <Card
+          key={player.id}
+          elevation={3}
+          sx={{
+            border: player.id === user?.id ? 3 : 1,
+            borderColor: player.id === user?.id ? 'primary.main' : 'divider',
+            bgcolor: player.isReady ? 'rgba(76, 175, 80, 0.08)' : 'background.paper',
+            transition: 'all 0.3s',
+          }}
+        >
+          <CardContent>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5 }}>
+              {/* 角色头像 */}
+              <Avatar
+                sx={{
+                  width: 70,
+                  height: 70,
+                  fontSize: 35,
+                  bgcolor: CharacterInfo[player.character].color,
+                }}
+              >
+                {CharacterInfo[player.character].emoji}
+              </Avatar>
+
+              {/* 玩家信息 */}
+              <Box sx={{ flexGrow: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                    {player.username}
+                  </Typography>
+                  {player.id === user?.id && (
+                    <Chip label="你" color="primary" size="small" />
+                  )}
+                </Box>
+
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  {CharacterInfo[player.character].label}
+                </Typography>
+
+                {/* 状态标签 */}
+                <Box sx={{ display: 'flex', gap: 1, mt: 1.5 }}>
+                  {player.isRoomCreator && (
+                    <Chip
+                      icon={<StarIcon />}
+                      label="房主"
+                      color="warning"
+                      size="small"
+                    />
+                  )}
+                  {player.isReady && (
+                    <Chip
+                      icon={<ReadyIcon />}
+                      label="已准备"
+                      color="success"
+                      size="small"
+                    />
+                  )}
+                </Box>
               </Box>
-
-              {/* 玩家名 */}
-              <Typography variant="h6" gutterBottom>
-                {player.username}
-                {player.id === user?.id && ' (你)'}
-              </Typography>
-
-              {/* 角色名称 */}
-              <Typography variant="body2" color="text.secondary" gutterBottom>
-                {CharacterInfo[player.character].label}
-              </Typography>
-
-              {/* 状态标签 */}
-              <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center', gap: 1 }}>
-                {player.isRoomCreator && (
-                  <Chip
-                    icon={<StarIcon />}
-                    label="房主"
-                    color="warning"
-                    size="small"
-                  />
-                )}
-                {player.isReady && (
-                  <Chip
-                    icon={<ReadyIcon />}
-                    label="已准备"
-                    color="success"
-                    size="small"
-                  />
-                )}
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
+            </Box>
+          </CardContent>
+        </Card>
       );
     });
 
-    // 空槽位
+    // 空槽位 - 横向卡片
     for (let i = 0; i < getEmptySlots(); i++) {
       slots.push(
-        <Grid size={{ xs: 12, md: 4 }} key={`empty-${i}`}>
-          <Card
-            elevation={1}
-            sx={{
-              height: '100%',
-              border: 1,
-              borderColor: 'divider',
-              borderStyle: 'dashed',
-              bgcolor: 'action.hover',
-            }}
-          >
-            <CardContent sx={{ textAlign: 'center' }}>
-              <Box sx={{ mb: 2 }}>
-                <Avatar
-                  sx={{
-                    width: 80,
-                    height: 80,
-                    bgcolor: 'action.disabled',
-                    mx: 'auto',
-                  }}
-                >
-                  <PersonIcon sx={{ fontSize: 40 }} />
-                </Avatar>
-              </Box>
+        <Card
+          key={`empty-${i}`}
+          elevation={1}
+          sx={{
+            border: 1,
+            borderColor: 'divider',
+            borderStyle: 'dashed',
+            bgcolor: 'action.hover',
+          }}
+        >
+          <CardContent>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5 }}>
+              <Avatar
+                sx={{
+                  width: 70,
+                  height: 70,
+                  bgcolor: 'action.disabled',
+                }}
+              >
+                <PersonIcon sx={{ fontSize: 35 }} />
+              </Avatar>
 
-              <Typography variant="h6" color="text.secondary">
-                等待玩家加入...
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
+              <Box>
+                <Typography variant="h6" color="text.secondary">
+                  等待玩家加入...
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  空位
+                </Typography>
+              </Box>
+            </Box>
+          </CardContent>
+        </Card>
       );
     }
 
@@ -395,188 +398,216 @@ const RoomPage: React.FC = () => {
   }
 
   return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        bgcolor: 'background.default',
-        py: 4,
-      }}
-    >
-      <Container maxWidth="lg">
-        {/* 房间信息卡片 */}
-        <Paper elevation={3} sx={{ p: 4, mb: 4, borderRadius: 2 }}>
-          {/* 房间名称 */}
-          <Typography
-            variant="h4"
-            component="h1"
-            gutterBottom
-            sx={{ fontWeight: 'bold', textAlign: 'center', mb: 3 }}
-          >
-            {currentRoom.name}
-          </Typography>
-
-          <Divider sx={{ mb: 3 }} />
-
-          {/* 房间码 */}
-          <Box sx={{ textAlign: 'center', mb: 2 }}>
-            <Typography variant="body1" color="text.secondary" gutterBottom>
-              房间码
-            </Typography>
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 2 }}>
-              <Typography
-                variant="h2"
-                sx={{
-                  fontWeight: 'bold',
-                  fontFamily: 'monospace',
-                  letterSpacing: 8,
-                  color: 'primary.main',
-                }}
-              >
-                {currentRoom.id}
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: '#fafafa' }}>
+      {/* 顶部房间信息栏 */}
+      <Paper elevation={2} sx={{ borderRadius: 0 }}>
+        <Box sx={{ px: 4, py: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            {/* 左侧：房间名称 */}
+            <Box>
+              <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+                {currentRoom.name}
               </Typography>
-              <Tooltip title="复制房间码">
-                <IconButton onClick={handleCopyRoomCode} color="primary" size="large">
-                  <CopyIcon />
-                </IconButton>
-              </Tooltip>
+              <Typography variant="body2" color="text.secondary">
+                房间ID: {currentRoom.id}
+              </Typography>
+            </Box>
+
+            {/* 中间：房间码展示 */}
+            <Box sx={{ textAlign: 'center' }}>
+              <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
+                房间码（分享给好友）
+              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <Typography
+                  variant="h3"
+                  sx={{
+                    fontWeight: 'bold',
+                    fontFamily: 'monospace',
+                    letterSpacing: 6,
+                    color: 'primary.main',
+                  }}
+                >
+                  {currentRoom.id}
+                </Typography>
+                <Tooltip title="复制房间码">
+                  <IconButton onClick={handleCopyRoomCode} color="primary" size="large">
+                    <CopyIcon fontSize="large" />
+                  </IconButton>
+                </Tooltip>
+              </Box>
+            </Box>
+
+            {/* 右侧：房间状态 */}
+            <Box sx={{ textAlign: 'right' }}>
+              <Chip
+                label={`${currentRoom.currentPlayers}/${currentRoom.maxPlayers} 玩家`}
+                color="primary"
+                sx={{ mb: 1, fontSize: '1rem', px: 2, py: 2.5 }}
+              />
+              <Typography variant="body2" color="text.secondary">
+                {currentRoom.currentPlayers === currentRoom.maxPlayers ? '房间已满' : '等待玩家加入'}
+              </Typography>
             </Box>
           </Box>
-
-          {/* 邀请提示 */}
-          <Alert severity="info" sx={{ mt: 2 }}>
-            <Typography variant="body2">
-              <strong>邀请朋友：</strong>分享房间码给好友，让他们加入游戏！
-            </Typography>
-          </Alert>
-        </Paper>
-
-        {/* 角色选择区域 */}
-        <Paper elevation={3} sx={{ p: 4, mb: 4, borderRadius: 2 }}>
-          <Typography variant="h5" gutterBottom sx={{ fontWeight: 'bold', mb: 3 }}>
-            选择你的神秘角色
-          </Typography>
-
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            选择一个角色开始游戏。你的真实身份将在游戏开始后揭晓！
-          </Typography>
-
-          <Grid container spacing={3}>
-            {Object.entries(CharacterInfo).map(([charType, info]) => {
-              const character = charType as CharacterType;
-              const isSelected = selectedCharacter === character;
-              const isTaken = currentRoom.players.some(
-                (p) => p.character === character && p.id !== user?.id
-              );
-
-              return (
-                <Grid size={{ xs: 12, sm: 4 }} key={character}>
-                  <Card
-                    elevation={isSelected ? 6 : 2}
-                    sx={{
-                      cursor: isTaken ? 'not-allowed' : 'pointer',
-                      opacity: isTaken ? 0.5 : 1,
-                      border: isSelected ? 3 : 1,
-                      borderColor: isSelected ? 'primary.main' : 'divider',
-                      transition: 'all 0.3s',
-                      '&:hover': {
-                        transform: isTaken ? 'none' : 'translateY(-4px)',
-                        boxShadow: isTaken ? 2 : 6,
-                      },
-                    }}
-                    onClick={() => !isTaken && handleSelectCharacter(character)}
-                  >
-                    <CardContent sx={{ textAlign: 'center', p: 3 }}>
-                      <Avatar
-                        sx={{
-                          width: 100,
-                          height: 100,
-                          fontSize: 50,
-                          bgcolor: info.color,
-                          mx: 'auto',
-                          mb: 2,
-                        }}
-                      >
-                        {info.emoji}
-                      </Avatar>
-
-                      <Typography variant="h6" gutterBottom>
-                        {info.label}
-                      </Typography>
-
-                      {isTaken && (
-                        <Chip label="已被选择" color="default" size="small" sx={{ mt: 1 }} />
-                      )}
-
-                      {isSelected && (
-                        <Chip
-                          icon={<ReadyIcon />}
-                          label="已选择"
-                          color="primary"
-                          size="small"
-                          sx={{ mt: 1 }}
-                        />
-                      )}
-                    </CardContent>
-                  </Card>
-                </Grid>
-              );
-            })}
-          </Grid>
-        </Paper>
-
-        {/* 玩家列表 */}
-        <Paper elevation={3} sx={{ p: 4, mb: 4, borderRadius: 2 }}>
-          <Typography variant="h5" gutterBottom sx={{ fontWeight: 'bold', mb: 3 }}>
-            玩家列表 ({currentRoom.currentPlayers}/{currentRoom.maxPlayers})
-          </Typography>
-
-          <Grid container spacing={3}>
-            {renderPlayerSlots()}
-          </Grid>
-        </Paper>
-
-        {/* 底部按钮 */}
-        <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2 }}>
-          {/* 离开房间 */}
-          <Button
-            variant="outlined"
-            color="error"
-            size="large"
-            startIcon={<ExitIcon />}
-            onClick={handleOpenLeaveDialog}
-          >
-            离开房间
-          </Button>
-
-          {/* 房主：开始游戏 */}
-          {isRoomCreator && (
-            <Button
-              variant="contained"
-              color="primary"
-              size="large"
-              startIcon={<StartIcon />}
-              onClick={handleStartGame}
-              disabled={currentRoom.currentPlayers < currentRoom.maxPlayers}
-            >
-              开始游戏
-            </Button>
-          )}
-
-          {/* 其他玩家：准备 */}
-          {!isRoomCreator && (
-            <Button
-              variant="contained"
-              color={isReady ? 'success' : 'primary'}
-              size="large"
-              startIcon={<ReadyIcon />}
-              onClick={handleToggleReady}
-              disabled={!selectedCharacter}
-            >
-              {isReady ? '取消准备' : '准备'}
-            </Button>
-          )}
         </Box>
-      </Container>
+      </Paper>
+
+      {/* 主内容区 - 左右分栏 */}
+      <Box sx={{ display: 'flex', flexGrow: 1, overflow: 'hidden' }}>
+        {/* 左侧区域 - 玩家列表 */}
+        <Box sx={{ width: '45%', p: 4, overflow: 'auto' }}>
+          <Paper elevation={3} sx={{ p: 4, borderRadius: 2, height: '100%' }}>
+            <Typography variant="h5" gutterBottom sx={{ fontWeight: 'bold', mb: 3 }}>
+              玩家列表 ({currentRoom.currentPlayers}/{currentRoom.maxPlayers})
+            </Typography>
+
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+              {renderPlayerSlots()}
+            </Box>
+          </Paper>
+        </Box>
+
+        {/* 右侧区域 - 角色选择 + 操作按钮 */}
+        <Box sx={{ width: '55%', p: 4, display: 'flex', flexDirection: 'column', gap: 3, overflow: 'auto' }}>
+          {/* 角色选择区域 */}
+          <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
+            <Typography variant="h5" gutterBottom sx={{ fontWeight: 'bold', mb: 2 }}>
+              选择你的神秘角色
+            </Typography>
+
+            <Alert severity="info" sx={{ mb: 3 }}>
+              选择一个角色开始游戏。你的真实身份将在游戏开始后揭晓！
+            </Alert>
+
+            <Grid container spacing={2.5}>
+              {Object.entries(CharacterInfo).map(([charType, info]) => {
+                const character = charType as CharacterType;
+                const isSelected = selectedCharacter === character;
+                const isTaken = currentRoom.players.some(
+                  (p) => p.character === character && p.id !== user?.id
+                );
+
+                return (
+                  <Grid size={4} key={character}>
+                    <Card
+                      elevation={isSelected ? 6 : 2}
+                      sx={{
+                        cursor: isTaken ? 'not-allowed' : 'pointer',
+                        opacity: isTaken ? 0.5 : 1,
+                        border: isSelected ? 3 : 1,
+                        borderColor: isSelected ? 'primary.main' : 'divider',
+                        transition: 'all 0.3s',
+                        '&:hover': {
+                          transform: isTaken ? 'none' : 'scale(1.05)',
+                          boxShadow: isTaken ? 2 : 8,
+                        },
+                      }}
+                      onClick={() => !isTaken && handleSelectCharacter(character)}
+                    >
+                      <CardContent sx={{ textAlign: 'center', p: 3 }}>
+                        <Avatar
+                          sx={{
+                            width: 80,
+                            height: 80,
+                            fontSize: 40,
+                            bgcolor: info.color,
+                            mx: 'auto',
+                            mb: 1.5,
+                          }}
+                        >
+                          {info.emoji}
+                        </Avatar>
+
+                        <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                          {info.label}
+                        </Typography>
+
+                        {isTaken && (
+                          <Chip label="已被选" color="default" size="small" sx={{ mt: 1 }} />
+                        )}
+
+                        {isSelected && (
+                          <Chip
+                            icon={<ReadyIcon />}
+                            label="已选择"
+                            color="primary"
+                            size="small"
+                            sx={{ mt: 1 }}
+                          />
+                        )}
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                );
+              })}
+            </Grid>
+          </Paper>
+
+          {/* 操作按钮区域 */}
+          <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
+            <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', mb: 3 }}>
+              游戏操作
+            </Typography>
+
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {/* 房主：开始游戏 */}
+              {isRoomCreator && (
+                <Button
+                  variant="contained"
+                  color="primary"
+                  size="large"
+                  fullWidth
+                  startIcon={<StartIcon />}
+                  onClick={handleStartGame}
+                  disabled={currentRoom.currentPlayers < currentRoom.maxPlayers}
+                  sx={{ py: 1.5, fontSize: '1.1rem' }}
+                >
+                  开始游戏 {currentRoom.currentPlayers < currentRoom.maxPlayers && `(需要 ${currentRoom.maxPlayers} 人)`}
+                </Button>
+              )}
+
+              {/* 其他玩家：准备 */}
+              {!isRoomCreator && (
+                <Button
+                  variant="contained"
+                  color={isReady ? 'success' : 'primary'}
+                  size="large"
+                  fullWidth
+                  startIcon={<ReadyIcon />}
+                  onClick={handleToggleReady}
+                  disabled={!selectedCharacter}
+                  sx={{ py: 1.5, fontSize: '1.1rem' }}
+                >
+                  {isReady ? '取消准备' : '准备就绪'}
+                </Button>
+              )}
+
+              {/* 离开房间 */}
+              <Button
+                variant="outlined"
+                color="error"
+                size="large"
+                fullWidth
+                startIcon={<ExitIcon />}
+                onClick={handleOpenLeaveDialog}
+                sx={{ py: 1.5, fontSize: '1.1rem' }}
+              >
+                离开房间
+              </Button>
+
+              <Divider sx={{ my: 1 }} />
+
+              {/* 提示信息 */}
+              <Alert severity="warning" sx={{ fontSize: '0.875rem' }}>
+                {isRoomCreator
+                  ? '你是房主，只有人数满员时才能开始游戏。'
+                  : '请选择角色并点击准备，等待房主开始游戏。'}
+              </Alert>
+            </Box>
+          </Paper>
+        </Box>
+      </Box>
 
       {/* 离开房间确认对话框 */}
       <Dialog open={leaveDialogOpen} onClose={handleCloseLeaveDialog}>

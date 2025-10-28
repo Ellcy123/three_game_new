@@ -11,7 +11,6 @@
 import React, { useEffect, useState } from 'react';
 import {
   Box,
-  Container,
   AppBar,
   Toolbar,
   Typography,
@@ -322,30 +321,36 @@ const LobbyPage: React.FC = () => {
   };
 
   return (
-    <Box sx={{ flexGrow: 1, minHeight: '100vh', bgcolor: 'background.default' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: 'background.default' }}>
       {/* 顶部导航栏 */}
       <AppBar position="static" elevation={2}>
-        <Toolbar>
-          <GameIcon sx={{ mr: 2 }} />
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            三人跑酷游戏
+        <Toolbar sx={{ px: 3 }}>
+          <GameIcon sx={{ mr: 2, fontSize: 32 }} />
+          <Typography variant="h5" component="div" sx={{ flexGrow: 1, fontWeight: 'bold' }}>
+            三人跑酷游戏 - 游戏大厅
           </Typography>
 
           {user && (
             <>
-              <Box sx={{ display: 'flex', alignItems: 'center', mr: 2 }}>
-                <Avatar sx={{ width: 32, height: 32, mr: 1, bgcolor: 'secondary.main' }}>
-                  <PersonIcon fontSize="small" />
+              <Box sx={{ display: 'flex', alignItems: 'center', mr: 3, gap: 1.5 }}>
+                <Avatar sx={{ width: 40, height: 40, bgcolor: 'secondary.main' }}>
+                  <PersonIcon />
                 </Avatar>
-                <Typography variant="body1">
-                  {user.username}
-                </Typography>
+                <Box>
+                  <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
+                    {user.username}
+                  </Typography>
+                  <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                    {user.email}
+                  </Typography>
+                </Box>
               </Box>
 
               <Button
                 color="inherit"
                 startIcon={<LogoutIcon />}
                 onClick={handleLogout}
+                sx={{ px: 3 }}
               >
                 登出
               </Button>
@@ -354,69 +359,127 @@ const LobbyPage: React.FC = () => {
         </Toolbar>
       </AppBar>
 
-      {/* 主要内容区 */}
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-        {/* 操作栏 */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-          <Typography variant="h4" component="h1" gutterBottom>
-            游戏大厅
+      {/* 主要内容区 - 侧边栏 + 房间列表 */}
+      <Box sx={{ display: 'flex', flexGrow: 1, overflow: 'hidden' }}>
+        {/* 左侧边栏 */}
+        <Box
+          sx={{
+            width: 280,
+            bgcolor: 'background.paper',
+            borderRight: 1,
+            borderColor: 'divider',
+            display: 'flex',
+            flexDirection: 'column',
+            p: 3,
+          }}
+        >
+          <Typography variant="h6" sx={{ mb: 3, fontWeight: 'bold' }}>
+            房间管理
           </Typography>
 
-          <Box>
-            <Button
-              variant="outlined"
-              startIcon={<RefreshIcon />}
-              onClick={loadRooms}
-              disabled={isLoading}
-              sx={{ mr: 2 }}
-            >
-              刷新
-            </Button>
+          {/* 创建房间按钮 */}
+          <Button
+            variant="contained"
+            size="large"
+            startIcon={<AddIcon />}
+            onClick={handleOpenCreateDialog}
+            disabled={isLoading}
+            sx={{ mb: 2 }}
+            fullWidth
+          >
+            创建新房间
+          </Button>
 
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={handleOpenCreateDialog}
-              disabled={isLoading}
-            >
-              创建房间
-            </Button>
+          {/* 刷新按钮 */}
+          <Button
+            variant="outlined"
+            size="large"
+            startIcon={<RefreshIcon />}
+            onClick={loadRooms}
+            disabled={isLoading}
+            fullWidth
+            sx={{ mb: 3 }}
+          >
+            刷新列表
+          </Button>
+
+          <Divider sx={{ mb: 3 }} />
+
+          {/* 房间统计 */}
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              房间统计
+            </Typography>
+            <Box sx={{ mt: 1.5 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                <Typography variant="body2">可用房间:</Typography>
+                <Typography variant="body2" fontWeight="bold" color="primary">
+                  {rooms.length}
+                </Typography>
+              </Box>
+              {pagination && (
+                <>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                    <Typography variant="body2">总房间数:</Typography>
+                    <Typography variant="body2" fontWeight="bold">
+                      {pagination.total}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography variant="body2">当前页:</Typography>
+                    <Typography variant="body2" fontWeight="bold">
+                      {pagination.page} / {pagination.totalPages}
+                    </Typography>
+                  </Box>
+                </>
+              )}
+            </Box>
           </Box>
+
+          <Divider sx={{ mb: 3 }} />
+
+          {/* 提示信息 */}
+          <Alert severity="info" sx={{ fontSize: '0.875rem' }}>
+            选择一个房间加入，或创建新房间邀请好友一起玩！
+          </Alert>
         </Box>
 
-        <Divider sx={{ mb: 3 }} />
+        {/* 右侧主内容区 - 房间列表 */}
+        <Box sx={{ flexGrow: 1, overflow: 'auto', p: 4, bgcolor: '#fafafa' }}>
 
-        {/* 加载状态 */}
-        {isLoading && rooms.length === 0 && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-            <CircularProgress />
-          </Box>
-        )}
+          {/* 加载状态 */}
+          {isLoading && rooms.length === 0 && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
+              <CircularProgress size={60} />
+            </Box>
+          )}
 
-        {/* 空状态 */}
-        {!isLoading && rooms.length === 0 && (
-          <Box sx={{ textAlign: 'center', py: 8 }}>
-            <Typography variant="h6" color="text.secondary" gutterBottom>
-              暂无可用房间
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              创建一个新房间开始游戏吧！
-            </Typography>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={handleOpenCreateDialog}
-            >
-              创建房间
-            </Button>
-          </Box>
-        )}
+          {/* 空状态 */}
+          {!isLoading && rooms.length === 0 && (
+            <Box sx={{ textAlign: 'center', py: 12 }}>
+              <GameIcon sx={{ fontSize: 80, color: 'action.disabled', mb: 2 }} />
+              <Typography variant="h5" color="text.secondary" gutterBottom>
+                暂无可用房间
+              </Typography>
+              <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+                创建一个新房间，邀请好友一起开始游戏吧！
+              </Typography>
+              <Button
+                variant="contained"
+                size="large"
+                startIcon={<AddIcon />}
+                onClick={handleOpenCreateDialog}
+              >
+                创建第一个房间
+              </Button>
+            </Box>
+          )}
 
-        {/* 房间列表 */}
-        {rooms.length > 0 && (
-          <Grid container spacing={3}>
-            {rooms.map((room) => (
-              <Grid size={{ xs: 12, sm: 6, md: 4 }} key={room.id}>
+          {/* 房间列表网格 - PC端4-6列布局 */}
+          {rooms.length > 0 && (
+            <Grid container spacing={3}>
+              {rooms.map((room) => (
+                <Grid size={3} key={room.id}>
                 <Card
                   elevation={2}
                   sx={{
@@ -482,20 +545,23 @@ const LobbyPage: React.FC = () => {
                     </Button>
                   </CardActions>
                 </Card>
-              </Grid>
-            ))}
-          </Grid>
-        )}
+                </Grid>
+              ))}
+            </Grid>
+          )}
 
-        {/* 分页信息 */}
-        {pagination && pagination.totalPages > 1 && (
-          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-            <Typography variant="body2" color="text.secondary">
-              第 {pagination.page} / {pagination.totalPages} 页，共 {pagination.total} 个房间
-            </Typography>
-          </Box>
-        )}
-      </Container>
+          {/* 分页信息 */}
+          {pagination && pagination.totalPages > 1 && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+              <Chip
+                label={`第 ${pagination.page} / ${pagination.totalPages} 页，共 ${pagination.total} 个房间`}
+                variant="outlined"
+                sx={{ px: 2, py: 1 }}
+              />
+            </Box>
+          )}
+        </Box>
+      </Box>
 
       {/* 创建房间对话框 */}
       <Dialog
