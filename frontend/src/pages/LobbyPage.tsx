@@ -115,6 +115,14 @@ const LobbyPage: React.FC = () => {
     password: '',
   });
 
+  // 房间码加入对话框
+  const [roomCodeDialogOpen, setRoomCodeDialogOpen] = useState(false);
+  const [roomCodeForm, setRoomCodeForm] = useState({
+    roomCode: '',
+    character: CharacterTypeConst.CAT as CharacterType,
+    password: '',
+  });
+
   // 表单验证错误
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
@@ -313,6 +321,77 @@ const LobbyPage: React.FC = () => {
   };
 
   /**
+   * 打开房间码加入对话框
+   */
+  const handleOpenRoomCodeDialog = () => {
+    setRoomCodeForm({
+      roomCode: '',
+      character: CharacterTypeConst.CAT,
+      password: '',
+    });
+    setFormErrors({});
+    setRoomCodeDialogOpen(true);
+  };
+
+  /**
+   * 关闭房间码加入对话框
+   */
+  const handleCloseRoomCodeDialog = () => {
+    setRoomCodeDialogOpen(false);
+    setFormErrors({});
+  };
+
+  /**
+   * 验证房间码表单
+   */
+  const validateRoomCodeForm = (): boolean => {
+    const errors: Record<string, string> = {};
+
+    if (!roomCodeForm.roomCode.trim()) {
+      errors.roomCode = '请输入房间码';
+    } else if (!/^[A-Z0-9]{6}$/i.test(roomCodeForm.roomCode.trim())) {
+      errors.roomCode = '房间码必须是6位字母或数字';
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  /**
+   * 处理通过房间码加入房间
+   */
+  const handleJoinByRoomCode = async () => {
+    if (!validateRoomCodeForm()) {
+      return;
+    }
+
+    if (!user) {
+      setSnackbarMessage('请先登录');
+      setSnackbarOpen(true);
+      return;
+    }
+
+    try {
+      const room = await joinRoom({
+        roomId: roomCodeForm.roomCode.trim().toUpperCase(),
+        character: roomCodeForm.character,
+        username: user.username,
+        password: roomCodeForm.password || undefined,
+      });
+
+      setSnackbarMessage('加入房间成功！');
+      setSnackbarOpen(true);
+      handleCloseRoomCodeDialog();
+
+      // 导航到房间页面
+      navigate(`/room/${room.id}`);
+    } catch (err: any) {
+      console.error('加入房间失败:', err);
+      // 错误已经通过 useEffect 处理
+    }
+  };
+
+  /**
    * 关闭 Snackbar
    */
   const handleCloseSnackbar = () => {
@@ -387,6 +466,20 @@ const LobbyPage: React.FC = () => {
             fullWidth
           >
             创建新房间
+          </Button>
+
+          {/* 通过房间码加入按钮 */}
+          <Button
+            variant="outlined"
+            size="large"
+            startIcon={<LockIcon />}
+            onClick={handleOpenRoomCodeDialog}
+            disabled={isLoading}
+            fullWidth
+            sx={{ mb: 2 }}
+            color="secondary"
+          >
+            输入房间码加入
           </Button>
 
           {/* 刷新按钮 */}
@@ -728,6 +821,91 @@ const LobbyPage: React.FC = () => {
           <Button onClick={handleCloseJoinDialog}>取消</Button>
           <Button
             onClick={handleJoinRoom}
+            variant="contained"
+            disabled={isLoading}
+          >
+            {isLoading ? <CircularProgress size={24} /> : '加入'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* 房间码加入对话框 */}
+      <Dialog
+        open={roomCodeDialogOpen}
+        onClose={handleCloseRoomCodeDialog}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>通过房间码加入</DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 2 }}>
+            {/* 房间码输入 */}
+            <TextField
+              fullWidth
+              label="房间码"
+              placeholder="输入6位房间码"
+              value={roomCodeForm.roomCode}
+              onChange={(e) =>
+                setRoomCodeForm({ ...roomCodeForm, roomCode: e.target.value.toUpperCase() })
+              }
+              error={!!formErrors.roomCode}
+              helperText={formErrors.roomCode || '请输入房主提供的6位房间码'}
+              sx={{ mb: 3 }}
+              autoFocus
+              inputProps={{
+                maxLength: 6,
+                style: { textTransform: 'uppercase', letterSpacing: '0.2em', fontSize: '1.2em' },
+              }}
+            />
+
+            {/* 选择角色 */}
+            <FormControl fullWidth sx={{ mb: 3 }}>
+              <InputLabel>选择角色</InputLabel>
+              <Select
+                value={roomCodeForm.character}
+                label="选择角色"
+                onChange={(e) =>
+                  setRoomCodeForm({
+                    ...roomCodeForm,
+                    character: e.target.value as CharacterType,
+                  })
+                }
+              >
+                {CharacterOptions.map((option) => (
+                  <MenuItem key={option.value} value={option.value}>
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <span style={{ marginRight: 8 }}>{option.emoji}</span>
+                      {option.label}
+                    </Box>
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            {/* 房间密码（可选） */}
+            <TextField
+              fullWidth
+              label="房间密码（如有）"
+              type="password"
+              value={roomCodeForm.password}
+              onChange={(e) =>
+                setRoomCodeForm({ ...roomCodeForm, password: e.target.value })
+              }
+              helperText="如果房间设置了密码，请输入"
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <LockIcon />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseRoomCodeDialog}>取消</Button>
+          <Button
+            onClick={handleJoinByRoomCode}
             variant="contained"
             disabled={isLoading}
           >

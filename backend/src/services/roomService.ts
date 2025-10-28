@@ -103,6 +103,7 @@ export class RoomService {
       const room: GameRoom = {
         id: roomData.room_id,
         name: roomData.room_name,
+        roomCode: roomData.room_code, // 添加6位房间码
         creatorId: roomData.host_user_id,
         maxPlayers: roomData.max_players,
         currentPlayers: 1, // 创建者已加入
@@ -149,29 +150,56 @@ export class RoomService {
    */
   async joinRoom(request: JoinRoomRequest, userId: string): Promise<GameRoom> {
     return transaction(async (client: PoolClient) => {
-      // 1. 获取房间信息
-      const roomResult = await client.query<{
-        room_id: string;
-        room_code: string;
-        host_user_id: string;
-        room_name: string;
-        max_players: number;
-        current_players: number;
-        room_status: string;
-        created_at: Date;
-      }>(
-        `SELECT room_id, room_code, host_user_id, room_name, max_players,
-                current_players, room_status, created_at
-         FROM game_rooms
-         WHERE room_id = $1`,
-        [request.roomId]
-      );
+      // 1. 获取房间信息（支持 room_id 或 room_code）
+      let roomResult;
+
+      // 判断是6位房间码还是UUID
+      const isRoomCode = /^[A-Z0-9]{6}$/i.test(request.roomId);
+
+      if (isRoomCode) {
+        // 通过房间码查询
+        roomResult = await client.query<{
+          room_id: string;
+          room_code: string;
+          host_user_id: string;
+          room_name: string;
+          max_players: number;
+          current_players: number;
+          room_status: string;
+          created_at: Date;
+        }>(
+          `SELECT room_id, room_code, host_user_id, room_name, max_players,
+                  current_players, room_status, created_at
+           FROM game_rooms
+           WHERE UPPER(room_code) = UPPER($1)`,
+          [request.roomId]
+        );
+      } else {
+        // 通过房间ID查询
+        roomResult = await client.query<{
+          room_id: string;
+          room_code: string;
+          host_user_id: string;
+          room_name: string;
+          max_players: number;
+          current_players: number;
+          room_status: string;
+          created_at: Date;
+        }>(
+          `SELECT room_id, room_code, host_user_id, room_name, max_players,
+                  current_players, room_status, created_at
+           FROM game_rooms
+           WHERE room_id = $1`,
+          [request.roomId]
+        );
+      }
 
       if (roomResult.rows.length === 0 || !roomResult.rows[0]) {
         throw new Error('房间不存在');
       }
 
       const room = roomResult.rows[0];
+      const actualRoomId = room.room_id; // 使用实际的 room_id
 
       // 2. 验证房间状态
       if (room.room_status !== RoomStatus.WAITING) {
@@ -181,7 +209,7 @@ export class RoomService {
       // 3. 检查是否已在房间中
       const existingPlayer = await client.query(
         'SELECT id FROM room_players WHERE room_id = $1 AND user_id = $2',
-        [request.roomId, userId]
+        [actualRoomId, userId]
       );
 
       if (existingPlayer.rows.length > 0) {
@@ -196,7 +224,7 @@ export class RoomService {
       // 5. 检查角色是否已被选择
       const characterCheck = await client.query(
         'SELECT id FROM room_players WHERE room_id = $1 AND character_type = $2',
-        [request.roomId, request.character]
+        [actualRoomId, request.character]
       );
 
       if (characterCheck.rows.length > 0) {
@@ -207,11 +235,11 @@ export class RoomService {
       await client.query(
         `INSERT INTO room_players (room_id, user_id, character_type, player_status)
          VALUES ($1, $2, $3, 'active')`,
-        [request.roomId, userId, request.character]
+        [actualRoomId, userId, request.character]
       );
 
       // 7. 获取更新后的房间信息
-      const updatedRoom = await this.getRoomDetails(request.roomId, client);
+      const updatedRoom = await this.getRoomDetails(actualRoomId, client);
 
       // 8. 更新缓存
       await this.cacheRoom(updatedRoom);
@@ -219,7 +247,7 @@ export class RoomService {
       // 9. 清除房间列表缓存
       await deleteCache(this.ROOM_LIST_CACHE_KEY);
 
-      console.log(`✓ 玩家 ${userId} 加入房间 ${request.roomId}`);
+      console.log(`✓ 玩家 ${userId} 加入房间 ${actualRoomId} (房间码: ${room.room_code})`);
       return updatedRoom;
     });
   }
@@ -463,6 +491,7 @@ export class RoomService {
       const room: GameRoom = {
         id: roomData.room_id,
         name: roomData.room_name,
+        roomCode: roomData.room_code, // 添加6位房间码
         creatorId: roomData.host_user_id,
         maxPlayers: roomData.max_players,
         currentPlayers: roomData.current_players,

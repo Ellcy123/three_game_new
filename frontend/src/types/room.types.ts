@@ -38,6 +38,7 @@ export interface RoomPlayer {
 export interface GameRoom {
   id: string;
   name: string;
+  roomCode?: string; // 6位房间码
   creatorId: string;
   maxPlayers: number;
   currentPlayers: number;

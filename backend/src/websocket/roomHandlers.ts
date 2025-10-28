@@ -35,6 +35,7 @@ interface RoomPlayerRedisData {
   characterName: string;
   socketId: string;
   status: 'active' | 'disconnected';
+  isReady?: boolean; // 准备状态
   joinedAt: number;
   disconnectedAt?: number;
 }
@@ -234,6 +235,81 @@ export function registerRoomHandlers(io: any, socket: AuthenticatedSocket): void
   );
 
   // ========================================
+  // 切换准备状态事件
+  // ========================================
+  socket.on(
+    'room:toggle_ready',
+    async (
+      data: { room_id: string; is_ready: boolean },
+      callback?: (response: any) => void
+    ) => {
+      try {
+        logger.info(`🎯 用户 ${socket.username} (${socket.userId}) 切换准备状态: ${data.is_ready}`);
+
+        // ========================================
+        // 1. 验证必需参数
+        // ========================================
+        if (!data.room_id || typeof data.is_ready !== 'boolean') {
+          throw new Error('缺少必需参数');
+        }
+
+        if (!socket.userId) {
+          throw new Error('用户未认证');
+        }
+
+        // ========================================
+        // 2. 更新 Redis 中的玩家准备状态
+        // ========================================
+        const redisKey = `room:${data.room_id}:players`;
+        const client = await getRedisClient();
+        const playerDataStr = await client.hGet(redisKey, socket.userId);
+
+        if (!playerDataStr) {
+          throw new Error('玩家不在此房间中');
+        }
+
+        const playerData: RoomPlayerRedisData = JSON.parse(playerDataStr);
+
+        // 更新准备状态
+        const updatedPlayerData = {
+          ...playerData,
+          isReady: data.is_ready,
+        };
+        await client.hSet(redisKey, socket.userId, JSON.stringify(updatedPlayerData));
+
+        // ========================================
+        // 3. 广播给房间内所有玩家（包括自己）
+        // ========================================
+        io.to(data.room_id).emit('room:player_ready_changed', {
+          user_id: socket.userId,
+          username: socket.username,
+          is_ready: data.is_ready,
+          timestamp: Date.now(),
+        });
+
+        // ========================================
+        // 4. 返回成功响应
+        // ========================================
+        callback?.({
+          success: true,
+          message: data.is_ready ? '已准备' : '取消准备',
+        });
+
+        logger.info(`✅ 用户 ${socket.username} 准备状态更新为: ${data.is_ready}`);
+      } catch (error) {
+        logger.error(`❌ 切换准备状态失败:`, error);
+        callback?.({
+          success: false,
+          error: {
+            code: 'TOGGLE_READY_ERROR',
+            message: error instanceof Error ? error.message : '切换准备状态失败',
+          },
+        });
+      }
+    }
+  );
+
+  // ========================================
   // 开始游戏事件
   // ========================================
   socket.on(
@@ -284,6 +360,29 @@ export function registerRoomHandlers(io: any, socket: AuthenticatedSocket): void
 
         if (room.currentPlayers > 3) {
           throw new Error('房间人数超过限制');
+        }
+
+        // ========================================
+        // 5.5. 检查所有玩家是否都已准备（房主除外）
+        // ========================================
+        const redisKey = `room:${data.room_id}:players`;
+        const client = await getRedisClient();
+        const allPlayers = await client.hGetAll(redisKey);
+
+        // 检查非房主玩家是否都已准备
+        const notReadyPlayers: string[] = [];
+        for (const [userId, playerDataStr] of Object.entries(allPlayers)) {
+          if (userId !== socket.userId) {
+            // 不检查房主自己
+            const playerData: RoomPlayerRedisData = JSON.parse(playerDataStr);
+            if (!playerData.isReady && playerData.status === 'active') {
+              notReadyPlayers.push(playerData.username);
+            }
+          }
+        }
+
+        if (notReadyPlayers.length > 0) {
+          throw new Error(`以下玩家尚未准备：${notReadyPlayers.join(', ')}`);
         }
 
         // ========================================

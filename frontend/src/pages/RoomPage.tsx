@@ -186,6 +186,35 @@ const RoomPage: React.FC = () => {
   }, [showSnackbar]);
 
   /**
+   * 处理玩家准备状态变化事件
+   */
+  const handlePlayerReadyChanged = useCallback((data: any) => {
+    console.log('[RoomPage] 玩家准备状态变化:', data);
+
+    if (currentRoom) {
+      const updatedPlayers = currentRoom.players.map(player => {
+        if (player.id === data.user_id) {
+          return { ...player, isReady: data.is_ready };
+        }
+        return player;
+      });
+
+      setCurrentRoom({
+        ...currentRoom,
+        players: updatedPlayers,
+      });
+
+      // 如果是其他玩家，显示提示
+      if (data.user_id !== user?.id) {
+        showSnackbar(
+          `${data.username} ${data.is_ready ? '已准备' : '取消准备'}`,
+          data.is_ready ? 'success' : 'info'
+        );
+      }
+    }
+  }, [currentRoom, setCurrentRoom, user, showSnackbar]);
+
+  /**
    * 处理游戏开始事件
    */
   const handleGameStarted = useCallback((data: any) => {
@@ -211,6 +240,7 @@ const RoomPage: React.FC = () => {
     on('room:player_left', handlePlayerLeft);
     on('room:player_disconnected', handlePlayerDisconnected);
     on('room:player_reconnected', handlePlayerReconnected);
+    on('room:player_ready_changed', handlePlayerReadyChanged);
     on('game:started', handleGameStarted);
 
     // 清理监听器
@@ -220,6 +250,7 @@ const RoomPage: React.FC = () => {
       off('room:player_left', handlePlayerLeft);
       off('room:player_disconnected', handlePlayerDisconnected);
       off('room:player_reconnected', handlePlayerReconnected);
+      off('room:player_ready_changed', handlePlayerReadyChanged);
       off('game:started', handleGameStarted);
     };
   }, [
@@ -230,6 +261,7 @@ const RoomPage: React.FC = () => {
     handlePlayerLeft,
     handlePlayerDisconnected,
     handlePlayerReconnected,
+    handlePlayerReadyChanged,
     handleGameStarted,
   ]);
 
@@ -332,8 +364,9 @@ const RoomPage: React.FC = () => {
    * 复制房间码
    */
   const handleCopyRoomCode = () => {
-    if (roomId) {
-      navigator.clipboard.writeText(roomId);
+    const codeToCopy = currentRoom?.roomCode || roomId || '';
+    if (codeToCopy) {
+      navigator.clipboard.writeText(codeToCopy);
       showSnackbar('房间码已复制到剪贴板！', 'success');
     }
   };
@@ -362,17 +395,28 @@ const RoomPage: React.FC = () => {
   /**
    * 切换准备状态
    */
-  const handleToggleReady = () => {
+  const handleToggleReady = useCallback(() => {
     if (!selectedCharacter) {
       showSnackbar('请先选择角色', 'error');
       return;
     }
 
-    setIsReady(!isReady);
-    showSnackbar(isReady ? '已取消准备' : '已准备', 'success');
+    if (!roomId || !isConnected) {
+      showSnackbar('未连接到服务器', 'error');
+      return;
+    }
 
-    // TODO: 调用 WebSocket 更新准备状态
-  };
+    const newReadyState = !isReady;
+
+    emit('room:toggle_ready', { room_id: roomId, is_ready: newReadyState }, (response: any) => {
+      if (response.success) {
+        setIsReady(newReadyState);
+        showSnackbar(response.message || (newReadyState ? '已准备' : '已取消准备'), 'success');
+      } else {
+        showSnackbar(response.error?.message || '准备状态更新失败', 'error');
+      }
+    });
+  }, [selectedCharacter, roomId, isConnected, isReady, emit, showSnackbar]);
 
   /**
    * 开始游戏（仅房主）
@@ -631,7 +675,7 @@ const RoomPage: React.FC = () => {
                     color: 'primary.main',
                   }}
                 >
-                  {roomId}
+                  {currentRoom.roomCode || roomId?.substring(0, 6).toUpperCase()}
                 </Typography>
                 <Tooltip title="复制房间码">
                   <IconButton onClick={handleCopyRoomCode} color="primary" size="large">
