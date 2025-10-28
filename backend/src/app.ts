@@ -8,7 +8,6 @@ import express, { Application, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import path from 'path';
 import { logger } from './utils/logger';
 import { notFoundHandler, errorHandler } from '@middleware/errorHandler';
 import { getPoolStatus } from '@config/database';
@@ -193,32 +192,7 @@ app.use('/api/v1/rooms', roomRoutes);
 // app.use('/api/v1/users', userRoutes);
 
 // ========================================
-// 前端静态文件服务（生产环境）
-// ========================================
-
-if (process.env.NODE_ENV === 'production') {
-  // 前端构建文件路径
-  const frontendDistPath = path.join(__dirname, '../../frontend/dist');
-
-  logger.info(`Serving frontend static files from: ${frontendDistPath}`);
-
-  // 服务静态文件
-  app.use(express.static(frontendDistPath));
-
-  // 所有非 API 路由都返回 index.html（支持前端路由）
-  app.get('*', (req: Request, res: Response, next: NextFunction) => {
-    // 跳过 API 路由
-    if (req.path.startsWith('/api') || req.path.startsWith('/health')) {
-      return next();
-    }
-
-    // 返回前端入口文件
-    res.sendFile(path.join(frontendDistPath, 'index.html'));
-  });
-}
-
-// ========================================
-// 404 错误处理（仅用于 API 路由）
+// 404 错误处理
 // ========================================
 
 app.use(notFoundHandler);
