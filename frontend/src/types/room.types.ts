@@ -37,8 +37,8 @@ export interface RoomPlayer {
 // 完整的游戏房间信息
 export interface GameRoom {
   id: string;
+  roomCode: string; // 6位房间码（必需）
   name: string;
-  roomCode?: string; // 6位房间码
   creatorId: string;
   maxPlayers: number;
   currentPlayers: number;
