@@ -144,6 +144,9 @@ export const joinRoom = asyncHandler(
       }
 
       // 2. 验证请求体
+      console.log('🔍 加入房间请求 - userId:', userId);
+      console.log('🔍 请求体:', JSON.stringify(req.body, null, 2));
+
       const { roomId, character, username, password } = req.body;
 
       if (!roomId || typeof roomId !== 'string' || roomId.trim().length === 0) {
@@ -165,7 +168,21 @@ export const joinRoom = asyncHandler(
       // 3. 检查用户是否已在其他房间中
       const currentRoom = await roomService.getUserCurrentRoom(userId);
 
-      if (currentRoom && currentRoom.id !== roomId) {
+      if (currentRoom) {
+        // 如果用户已经在目标房间中，直接返回房间信息
+        if (currentRoom.id === roomId || currentRoom.roomCode?.toUpperCase() === roomId.trim().toUpperCase()) {
+          console.log(`ℹ️  用户 ${userId} 已在房间 ${roomId} 中，返回现有房间信息`);
+          res.status(200).json({
+            success: true,
+            data: {
+              room: currentRoom,
+              message: '您已在此房间中',
+            },
+          } as ApiResponse);
+          return;
+        }
+
+        // 如果在其他房间中，抛出错误
         throw new AppError(
           '您已在另一个房间中，请先离开当前房间',
           400,

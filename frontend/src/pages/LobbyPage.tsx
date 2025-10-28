@@ -8,7 +8,7 @@
  * - 用户信息和登出
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   Box,
   AppBar,
@@ -93,6 +93,9 @@ const LobbyPage: React.FC = () => {
     joinRoom,
     clearError,
   } = useRoomStore();
+
+  // 防止重复请求的标志
+  const isJoiningRoom = useRef(false);
 
   // 本地状态
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -300,7 +303,15 @@ const LobbyPage: React.FC = () => {
       return;
     }
 
+    // 防止重复请求
+    if (isJoiningRoom.current) {
+      console.log('⚠️ 正在加入房间，请勿重复点击');
+      return;
+    }
+
     try {
+      isJoiningRoom.current = true;
+
       const room = await joinRoom({
         roomId: selectedRoom.id,
         character: joinForm.character,
@@ -317,6 +328,8 @@ const LobbyPage: React.FC = () => {
     } catch (err: any) {
       console.error('加入房间失败:', err);
       // 错误已经通过 useEffect 处理
+    } finally {
+      isJoiningRoom.current = false;
     }
   };
 
@@ -371,7 +384,15 @@ const LobbyPage: React.FC = () => {
       return;
     }
 
+    // 防止重复请求
+    if (isJoiningRoom.current) {
+      console.log('⚠️ 正在加入房间，请勿重复点击');
+      return;
+    }
+
     try {
+      isJoiningRoom.current = true;
+
       const room = await joinRoom({
         roomId: roomCodeForm.roomCode.trim().toUpperCase(),
         character: roomCodeForm.character,
@@ -388,6 +409,8 @@ const LobbyPage: React.FC = () => {
     } catch (err: any) {
       console.error('加入房间失败:', err);
       // 错误已经通过 useEffect 处理
+    } finally {
+      isJoiningRoom.current = false;
     }
   };
 

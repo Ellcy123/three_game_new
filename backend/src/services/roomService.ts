@@ -206,22 +206,12 @@ export class RoomService {
         throw new Error('房间已开始游戏，无法加入');
       }
 
-      // 3. 检查是否已在房间中
-      const existingPlayer = await client.query(
-        'SELECT id FROM room_players WHERE room_id = $1 AND user_id = $2',
-        [actualRoomId, userId]
-      );
-
-      if (existingPlayer.rows.length > 0) {
-        throw new Error('您已在此房间中');
-      }
-
-      // 4. 检查房间是否已满
+      // 3. 检查房间是否已满
       if (room.current_players >= room.max_players) {
         throw new Error('房间已满');
       }
 
-      // 5. 检查角色是否已被选择
+      // 4. 检查角色是否已被选择
       const characterCheck = await client.query(
         'SELECT id FROM room_players WHERE room_id = $1 AND character_type = $2',
         [actualRoomId, request.character]
@@ -231,20 +221,20 @@ export class RoomService {
         throw new Error('该角色已被其他玩家选择');
       }
 
-      // 6. 加入房间
+      // 5. 加入房间
       await client.query(
         `INSERT INTO room_players (room_id, user_id, character_type, player_status)
          VALUES ($1, $2, $3, 'active')`,
         [actualRoomId, userId, request.character]
       );
 
-      // 7. 获取更新后的房间信息
+      // 6. 获取更新后的房间信息
       const updatedRoom = await this.getRoomDetails(actualRoomId, client);
 
-      // 8. 更新缓存
+      // 7. 更新缓存
       await this.cacheRoom(updatedRoom);
 
-      // 9. 清除房间列表缓存
+      // 8. 清除房间列表缓存
       await deleteCache(this.ROOM_LIST_CACHE_KEY);
 
       console.log(`✓ 玩家 ${userId} 加入房间 ${actualRoomId} (房间码: ${room.room_code})`);
