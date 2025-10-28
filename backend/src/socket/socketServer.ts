@@ -3,6 +3,7 @@ import { Server, Socket } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import { logger } from '../utils/logger';
 import { registerRoomHandlers, clearAllDisconnectionTimers } from '../websocket/roomHandlers';
+import { registerGameHandlers, cleanupGameHandlers } from '../websocket/gameHandlers';
 
 /**
  * JWT Payload 接口
@@ -146,8 +147,8 @@ export function initSocketServer(httpServer: HttpServer): Server {
     // 房间事件处理器
     registerRoomHandlers(io, socket);
 
-    // TODO: 游戏事件处理器（稍后添加）
-    // setupGameHandlers(socket);
+    // 游戏事件处理器
+    registerGameHandlers(io, socket);
 
     // TODO: 聊天事件处理器（稍后添加）
     // setupChatHandlers(socket);
@@ -204,6 +205,9 @@ export function closeSocketServer(): void {
 
     // 清理所有断线定时器
     clearAllDisconnectionTimers();
+
+    // 清理游戏处理器资源
+    cleanupGameHandlers();
 
     // 关闭所有连接
     io.close();
