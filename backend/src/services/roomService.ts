@@ -226,12 +226,25 @@ export class RoomService {
         throw new Error('房间已开始游戏，无法加入');
       }
 
-      // 3. 检查房间是否已满
+      // 3. 检查用户是否已在此房间中（幂等性检查）
+      const existingPlayerCheck = await client.query(
+        'SELECT id, character_type FROM room_players WHERE room_id = $1 AND user_id = $2',
+        [actualRoomId, userId]
+      );
+
+      if (existingPlayerCheck.rows.length > 0) {
+        console.log('ℹ️  用户已在房间中，返回现有房间信息（幂等操作）');
+        // 用户已在房间中，直接返回房间信息
+        const updatedRoom = await this.getRoomDetails(actualRoomId, client);
+        return updatedRoom;
+      }
+
+      // 4. 检查房间是否已满
       if (room.current_players >= room.max_players) {
         throw new Error('房间已满');
       }
 
-      // 4. 检查角色是否已被选择
+      // 5. 检查角色是否已被选择
       const characterCheck = await client.query(
         'SELECT id FROM room_players WHERE room_id = $1 AND character_type = $2',
         [actualRoomId, request.character]
@@ -241,7 +254,7 @@ export class RoomService {
         throw new Error('该角色已被其他玩家选择');
       }
 
-      // 5. 加入房间
+      // 6. 加入房间
       console.log('🔍 准备插入玩家记录:', {
         actualRoomId,
         userId,
@@ -274,14 +287,14 @@ export class RoomService {
         throw new Error(`加入房间失败: ${insertError.message}`);
       }
 
-      // 6. 获取更新后的房间信息
+      // 7. 获取更新后的房间信息
       console.log('🔍 获取更新后的房间信息...');
       const updatedRoom = await this.getRoomDetails(actualRoomId, client);
 
-      // 7. 更新缓存
+      // 8. 更新缓存
       await this.cacheRoom(updatedRoom);
 
-      // 8. 清除房间列表缓存
+      // 9. 清除房间列表缓存
       await deleteCache(this.ROOM_LIST_CACHE_KEY);
 
       console.log(`✓ 玩家 ${userId} 加入房间 ${actualRoomId} (房间码: ${room.room_code})`);
