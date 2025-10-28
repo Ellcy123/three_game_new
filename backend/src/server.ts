@@ -14,7 +14,7 @@ import dotenv from 'dotenv';
 import { createServer } from 'http';
 import app from './app';
 import { logger } from './utils/logger';
-import { initSocketServer } from './socket/socketServer';
+import { initSocketServer, closeSocketServer } from './socket/socketServer';
 import { testConnection, closePool } from '@config/database';
 import { connectRedis, testRedisConnection, closeRedis } from '@config/redis';
 import { initDatabase } from '@config/initDatabase';
@@ -188,19 +188,24 @@ function setupGracefulShutdown(httpServer: any) {
 
 async function shutdown(httpServer: any) {
   try {
-    // 1. 停止接受新的连接
-    logger.info('1. 停止接受新的连接...');
+    // 1. 关闭 Socket.IO 服务器
+    logger.info('1. 关闭 Socket.IO 服务器...');
+    closeSocketServer();
+    logger.info('   ✅ Socket.IO 服务器已关闭');
+
+    // 2. 停止接受新的连接
+    logger.info('2. 停止接受新的连接...');
     httpServer.close(() => {
       logger.info('   ✅ HTTP 服务器已关闭');
     });
 
-    // 2. 关闭数据库连接池
-    logger.info('2. 关闭数据库连接...');
+    // 3. 关闭数据库连接池
+    logger.info('3. 关闭数据库连接...');
     await closePool();
     logger.info('   ✅ 数据库连接已关闭');
 
-    // 3. 关闭 Redis 连接
-    logger.info('3. 关闭 Redis 连接...');
+    // 4. 关闭 Redis 连接
+    logger.info('4. 关闭 Redis 连接...');
     await closeRedis();
     logger.info('   ✅ Redis 连接已关闭');
 

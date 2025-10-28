@@ -1,5 +1,5 @@
 /**
- * 房间页面（等待游戏开始）
+ * 房间页面（等待游戏开始）- 集成 WebSocket 实时功能
  *
  * 功能：
  * - 显示房间信息和房间码
@@ -7,9 +7,11 @@
  * - 角色选择（显示为问号角色）
  * - 准备/开始游戏
  * - 离开房间
+ * - 实时更新玩家列表
+ * - WebSocket 事件监听
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   Box,
   Paper,
@@ -42,7 +44,8 @@ import {
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { useRoomStore } from '../store/roomStore';
-import type { CharacterType } from '../types/room.types';
+import useSocket from '../hooks/useSocket';
+import type { CharacterType, GameRoom, RoomPlayer } from '../types/room.types';
 import { CharacterType as CharacterTypeConst } from '../types/room.types';
 
 /**
@@ -70,7 +73,21 @@ const RoomPage: React.FC = () => {
     fetchRoomDetails,
     leaveRoom,
     clearError,
+    setCurrentRoom,
   } = useRoomStore();
+
+  // WebSocket
+  const { emit, on, off, isConnected } = useSocket({
+    autoConnect: true,
+    onConnect: () => {
+      console.log('[RoomPage] WebSocket 已连接');
+      showSnackbar('已连接到服务器', 'success');
+    },
+    onDisconnect: (reason) => {
+      console.log('[RoomPage] WebSocket 已断开:', reason);
+      showSnackbar('与服务器断开连接', 'warning');
+    },
+  });
 
   // 本地状态
   const [selectedCharacter, setSelectedCharacter] = useState<CharacterType | null>(null);
@@ -78,16 +95,211 @@ const RoomPage: React.FC = () => {
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
-  const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error' | 'info'>('info');
+  const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error' | 'info' | 'warning'>('info');
+  const [hasJoinedRoom, setHasJoinedRoom] = useState(false);
 
   /**
-   * 组件挂载时加载房间详情
+   * 显示提示消息
    */
-  useEffect(() => {
-    if (roomId) {
-      loadRoomDetails();
+  const showSnackbar = useCallback((message: string, severity: 'success' | 'error' | 'info' | 'warning' = 'info') => {
+    setSnackbarMessage(message);
+    setSnackbarSeverity(severity);
+    setSnackbarOpen(true);
+  }, []);
+
+  /**
+   * 关闭 Snackbar
+   */
+  const handleCloseSnackbar = () => {
+    setSnackbarOpen(false);
+  };
+
+  // ========================================
+  // WebSocket 事件处理器
+  // ========================================
+
+  /**
+   * 处理玩家加入事件
+   */
+  const handlePlayerJoined = useCallback((data: any) => {
+    console.log('[RoomPage] 玩家加入:', data);
+
+    if (currentRoom) {
+      // 检查玩家是否已在列表中
+      const playerExists = currentRoom.players.some(p => p.id === data.user_id);
+
+      if (!playerExists) {
+        const newPlayer: RoomPlayer = {
+          id: data.user_id,
+          username: data.username,
+          character: data.character_type,
+          isReady: false,
+          isRoomCreator: false,
+          socketId: '',
+          joinedAt: new Date(),
+        };
+
+        const updatedRoom: GameRoom = {
+          ...currentRoom,
+          players: [...currentRoom.players, newPlayer],
+          currentPlayers: currentRoom.currentPlayers + 1,
+        };
+
+        setCurrentRoom(updatedRoom);
+        showSnackbar(`${data.username} 加入了房间`, 'info');
+      }
     }
-  }, [roomId]);
+  }, [currentRoom, setCurrentRoom, showSnackbar]);
+
+  /**
+   * 处理玩家离开事件
+   */
+  const handlePlayerLeft = useCallback((data: any) => {
+    console.log('[RoomPage] 玩家离开:', data);
+
+    if (currentRoom) {
+      const updatedRoom: GameRoom = {
+        ...currentRoom,
+        players: currentRoom.players.filter(p => p.id !== data.user_id),
+        currentPlayers: Math.max(0, currentRoom.currentPlayers - 1),
+      };
+
+      setCurrentRoom(updatedRoom);
+      showSnackbar(`${data.username} 离开了房间`, 'info');
+    }
+  }, [currentRoom, setCurrentRoom, showSnackbar]);
+
+  /**
+   * 处理玩家断线事件
+   */
+  const handlePlayerDisconnected = useCallback((data: any) => {
+    console.log('[RoomPage] 玩家断线:', data);
+    showSnackbar(`${data.username} 断线了`, 'warning');
+  }, [showSnackbar]);
+
+  /**
+   * 处理玩家重连事件
+   */
+  const handlePlayerReconnected = useCallback((data: any) => {
+    console.log('[RoomPage] 玩家重连:', data);
+    showSnackbar(`${data.username} 重新连接了`, 'success');
+  }, [showSnackbar]);
+
+  /**
+   * 处理游戏开始事件
+   */
+  const handleGameStarted = useCallback((data: any) => {
+    console.log('[RoomPage] 游戏开始:', data);
+    showSnackbar('游戏即将开始...', 'success');
+
+    // 延迟跳转到游戏页面
+    setTimeout(() => {
+      navigate('/game', { state: { roomId: data.room_id, initialState: data.initial_state } });
+    }, 1500);
+  }, [navigate, showSnackbar]);
+
+  // ========================================
+  // WebSocket 事件监听设置
+  // ========================================
+  useEffect(() => {
+    if (!isConnected) return;
+
+    console.log('[RoomPage] 设置 WebSocket 事件监听器');
+
+    // 注册事件监听器
+    on('room:player_joined', handlePlayerJoined);
+    on('room:player_left', handlePlayerLeft);
+    on('room:player_disconnected', handlePlayerDisconnected);
+    on('room:player_reconnected', handlePlayerReconnected);
+    on('game:started', handleGameStarted);
+
+    // 清理监听器
+    return () => {
+      console.log('[RoomPage] 清理 WebSocket 事件监听器');
+      off('room:player_joined', handlePlayerJoined);
+      off('room:player_left', handlePlayerLeft);
+      off('room:player_disconnected', handlePlayerDisconnected);
+      off('room:player_reconnected', handlePlayerReconnected);
+      off('game:started', handleGameStarted);
+    };
+  }, [
+    isConnected,
+    on,
+    off,
+    handlePlayerJoined,
+    handlePlayerLeft,
+    handlePlayerDisconnected,
+    handlePlayerReconnected,
+    handleGameStarted,
+  ]);
+
+  // ========================================
+  // 组件挂载时加载房间详情并加入房间
+  // ========================================
+  useEffect(() => {
+    if (!roomId || !user) return;
+
+    const initRoom = async () => {
+      try {
+        // 1. 加载房间详情
+        await fetchRoomDetails(roomId);
+
+        // 2. 发送 room:join 事件（通过 WebSocket）
+        if (isConnected && !hasJoinedRoom && selectedCharacter) {
+          console.log('[RoomPage] 发送 room:join 事件');
+
+          emit(
+            'room:join',
+            {
+              room_id: roomId,
+              character_type: selectedCharacter,
+              character_name: user.username,
+            },
+            (response: any) => {
+              if (response.success) {
+                console.log('[RoomPage] 成功加入房间:', response.data);
+                setHasJoinedRoom(true);
+
+                // 更新本地房间状态
+                if (response.data.room) {
+                  setCurrentRoom(response.data.room);
+                }
+              } else {
+                console.error('[RoomPage] 加入房间失败:', response.error);
+                showSnackbar(response.error.message, 'error');
+              }
+            }
+          );
+        }
+      } catch (err) {
+        console.error('[RoomPage] 初始化房间失败:', err);
+        showSnackbar('加载房间失败', 'error');
+        setTimeout(() => navigate('/lobby'), 2000);
+      }
+    };
+
+    initRoom();
+  }, [roomId, user, isConnected, selectedCharacter]);
+
+  // ========================================
+  // 组件卸载时离开房间
+  // ========================================
+  useEffect(() => {
+    return () => {
+      // 组件卸载时发送 room:leave 事件
+      if (roomId && isConnected && hasJoinedRoom) {
+        console.log('[RoomPage] 组件卸载，发送 room:leave 事件');
+
+        emit('room:leave', { room_id: roomId }, (response: any) => {
+          if (response.success) {
+            console.log('[RoomPage] 成功离开房间');
+          } else {
+            console.error('[RoomPage] 离开房间失败:', response.error);
+          }
+        });
+      }
+    };
+  }, [roomId, isConnected, hasJoinedRoom, emit]);
 
   /**
    * 错误处理
@@ -97,7 +309,7 @@ const RoomPage: React.FC = () => {
       showSnackbar(error, 'error');
       clearError();
     }
-  }, [error, clearError]);
+  }, [error, clearError, showSnackbar]);
 
   /**
    * 设置当前玩家选择的角色
@@ -112,44 +324,16 @@ const RoomPage: React.FC = () => {
     }
   }, [currentRoom, user]);
 
-  /**
-   * 加载房间详情
-   */
-  const loadRoomDetails = async () => {
-    if (!roomId) return;
-
-    try {
-      await fetchRoomDetails(roomId);
-    } catch (err) {
-      console.error('加载房间详情失败:', err);
-      showSnackbar('加载房间失败', 'error');
-      // 加载失败返回大厅
-      setTimeout(() => navigate('/lobby'), 2000);
-    }
-  };
-
-  /**
-   * 显示提示消息
-   */
-  const showSnackbar = (message: string, severity: 'success' | 'error' | 'info' = 'info') => {
-    setSnackbarMessage(message);
-    setSnackbarSeverity(severity);
-    setSnackbarOpen(true);
-  };
-
-  /**
-   * 关闭 Snackbar
-   */
-  const handleCloseSnackbar = () => {
-    setSnackbarOpen(false);
-  };
+  // ========================================
+  // 用户操作处理函数
+  // ========================================
 
   /**
    * 复制房间码
    */
   const handleCopyRoomCode = () => {
-    if (currentRoom?.id) {
-      navigator.clipboard.writeText(currentRoom.id);
+    if (roomId) {
+      navigator.clipboard.writeText(roomId);
       showSnackbar('房间码已复制到剪贴板！', 'success');
     }
   };
@@ -171,8 +355,8 @@ const RoomPage: React.FC = () => {
     setSelectedCharacter(character);
     showSnackbar(`已选择 ${CharacterInfo[character].label}`, 'success');
 
-    // TODO: 调用 API 更新角色选择
-    // 这里需要添加更新角色的 API 调用
+    // 如果已经在房间中，需要通过 WebSocket 更新角色
+    // TODO: 实现角色更新 WebSocket 事件
   };
 
   /**
@@ -187,23 +371,14 @@ const RoomPage: React.FC = () => {
     setIsReady(!isReady);
     showSnackbar(isReady ? '已取消准备' : '已准备', 'success');
 
-    // TODO: 调用 API 更新准备状态
-    // 这里需要添加更新准备状态的 API 调用
+    // TODO: 调用 WebSocket 更新准备状态
   };
 
   /**
    * 开始游戏（仅房主）
    */
   const handleStartGame = () => {
-    if (!currentRoom) return;
-
-    // 检查是否所有玩家都已准备
-    const allReady = currentRoom.players.every((p) => p.isReady || p.isRoomCreator);
-
-    if (!allReady) {
-      showSnackbar('还有玩家未准备', 'error');
-      return;
-    }
+    if (!currentRoom || !roomId) return;
 
     // 检查是否人数已满
     if (currentRoom.currentPlayers < currentRoom.maxPlayers) {
@@ -211,11 +386,18 @@ const RoomPage: React.FC = () => {
       return;
     }
 
-    showSnackbar('游戏即将开始...', 'success');
+    console.log('[RoomPage] 发送 room:start_game 事件');
 
-    // TODO: 调用 API 开始游戏
-    // 然后导航到游戏页面
-    // navigate('/game');
+    // 通过 WebSocket 发送开始游戏事件
+    emit('room:start_game', { room_id: roomId }, (response: any) => {
+      if (response.success) {
+        console.log('[RoomPage] 游戏开始成功');
+        showSnackbar('游戏即将开始...', 'success');
+      } else {
+        console.error('[RoomPage] 开始游戏失败:', response.error);
+        showSnackbar(response.error.message, 'error');
+      }
+    });
   };
 
   /**
@@ -236,16 +418,29 @@ const RoomPage: React.FC = () => {
    * 离开房间
    */
   const handleLeaveRoom = async () => {
-    if (!currentRoom) return;
+    if (!currentRoom || !roomId) return;
 
     try {
-      await leaveRoom(currentRoom.id);
-      showSnackbar('已离开房间', 'success');
-      handleCloseLeaveDialog();
-      // 返回大厅
-      navigate('/lobby');
+      // 通过 WebSocket 发送离开房间事件
+      emit('room:leave', { room_id: roomId }, async (response: any) => {
+        if (response.success) {
+          console.log('[RoomPage] 成功离开房间');
+
+          // 同时调用 API 清理本地状态
+          await leaveRoom(currentRoom.id);
+
+          showSnackbar('已离开房间', 'success');
+          handleCloseLeaveDialog();
+
+          // 返回大厅
+          navigate('/lobby');
+        } else {
+          console.error('[RoomPage] 离开房间失败:', response.error);
+          showSnackbar(response.error.message, 'error');
+        }
+      });
     } catch (err) {
-      console.error('离开房间失败:', err);
+      console.error('[RoomPage] 离开房间失败:', err);
       showSnackbar('离开房间失败', 'error');
     }
   };
@@ -408,9 +603,17 @@ const RoomPage: React.FC = () => {
               <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 0.5 }}>
                 {currentRoom.name}
               </Typography>
-              <Typography variant="body2" color="text.secondary">
-                房间ID: {currentRoom.id}
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography variant="body2" color="text.secondary">
+                  房间ID: {currentRoom.id}
+                </Typography>
+                {/* WebSocket 连接状态指示 */}
+                <Chip
+                  label={isConnected ? '已连接' : '未连接'}
+                  color={isConnected ? 'success' : 'error'}
+                  size="small"
+                />
+              </Box>
             </Box>
 
             {/* 中间：房间码展示 */}
@@ -428,7 +631,7 @@ const RoomPage: React.FC = () => {
                     color: 'primary.main',
                   }}
                 >
-                  {currentRoom.id}
+                  {roomId}
                 </Typography>
                 <Tooltip title="复制房间码">
                   <IconButton onClick={handleCopyRoomCode} color="primary" size="large">
@@ -560,7 +763,7 @@ const RoomPage: React.FC = () => {
                   fullWidth
                   startIcon={<StartIcon />}
                   onClick={handleStartGame}
-                  disabled={currentRoom.currentPlayers < currentRoom.maxPlayers}
+                  disabled={!isConnected || currentRoom.currentPlayers < currentRoom.maxPlayers}
                   sx={{ py: 1.5, fontSize: '1.1rem' }}
                 >
                   开始游戏 {currentRoom.currentPlayers < currentRoom.maxPlayers && `(需要 ${currentRoom.maxPlayers} 人)`}
@@ -576,7 +779,7 @@ const RoomPage: React.FC = () => {
                   fullWidth
                   startIcon={<ReadyIcon />}
                   onClick={handleToggleReady}
-                  disabled={!selectedCharacter}
+                  disabled={!selectedCharacter || !isConnected}
                   sx={{ py: 1.5, fontSize: '1.1rem' }}
                 >
                   {isReady ? '取消准备' : '准备就绪'}
@@ -604,6 +807,13 @@ const RoomPage: React.FC = () => {
                   ? '你是房主，只有人数满员时才能开始游戏。'
                   : '请选择角色并点击准备，等待房主开始游戏。'}
               </Alert>
+
+              {/* WebSocket 连接状态提示 */}
+              {!isConnected && (
+                <Alert severity="error" sx={{ fontSize: '0.875rem' }}>
+                  与服务器断开连接，部分功能可能不可用
+                </Alert>
+              )}
             </Box>
           </Paper>
         </Box>
@@ -615,7 +825,7 @@ const RoomPage: React.FC = () => {
         <DialogContent>
           <Typography>
             你确定要离开房间吗？
-            {isRoomCreator && ' 如果你是房主，离开后房间将被解散。'}
+            {isRoomCreator && ' 如果你是房主，其他玩家可能会接替房主位置。'}
           </Typography>
         </DialogContent>
         <DialogActions>
