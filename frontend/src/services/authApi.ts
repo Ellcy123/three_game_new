@@ -47,6 +47,15 @@ export interface VerifyResponse {
   user: UserData;
 }
 
+// 后端 verify 实际返回的响应结构
+interface BackendVerifyResponse {
+  success: true;
+  data: {
+    valid: true;
+    user: UserData;
+  };
+}
+
 // 认证 API 对象
 export const authApi = {
   /**
@@ -74,8 +83,8 @@ export const authApi = {
    * @returns 用户信息
    */
   verify: async (): Promise<VerifyResponse> => {
-    const response = await api.get<VerifyResponse>('/api/v1/auth/verify');
-    return response.data;
+    const response = await api.get<BackendVerifyResponse>('/api/v1/auth/verify');
+    return { user: response.data.data.user }; // 提取 data.data.user
   },
 
   /**

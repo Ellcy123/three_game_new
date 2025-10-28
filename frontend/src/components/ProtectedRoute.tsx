@@ -20,7 +20,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   // 组件挂载时检查认证状态
   useEffect(() => {
     checkAuth();
-  }, [checkAuth]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // 如果正在加载，显示加载指示器
   if (isLoading) {
