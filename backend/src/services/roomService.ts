@@ -239,22 +239,39 @@ export class RoomService {
         return updatedRoom;
       }
 
-      // 4. 检查房间是否已满
+      // 4. 调试：查询房间中所有玩家
+      const allPlayersDebug = await client.query(
+        'SELECT user_id, character_type, player_status FROM room_players WHERE room_id = $1',
+        [actualRoomId]
+      );
+      console.log('🔍 房间中现有玩家:', allPlayersDebug.rows);
+
+      // 5. 检查房间是否已满
       if (room.current_players >= room.max_players) {
         throw new Error('房间已满');
       }
 
-      // 5. 检查角色是否已被选择
-      const characterCheck = await client.query(
-        'SELECT id FROM room_players WHERE room_id = $1 AND character_type = $2',
+      // 6. 检查角色是否已被选择
+      const characterCheck = await client.query<{
+        id: number;
+        user_id: string;
+        character_type: string;
+      }>(
+        'SELECT id, user_id, character_type FROM room_players WHERE room_id = $1 AND character_type = $2',
         [actualRoomId, request.character]
       );
 
-      if (characterCheck.rows.length > 0) {
-        throw new Error('该角色已被其他玩家选择');
+      if (characterCheck.rows.length > 0 && characterCheck.rows[0]) {
+        const occupiedBy = characterCheck.rows[0];
+        console.error(`❌ 角色 ${request.character} 已被占用:`, {
+          occupiedByUserId: occupiedBy.user_id,
+          currentUserId: userId,
+          recordId: occupiedBy.id,
+        });
+        throw new Error(`该角色已被其他玩家选择（被用户 ${occupiedBy.user_id} 占用）`);
       }
 
-      // 6. 加入房间
+      // 7. 加入房间
       console.log('🔍 准备插入玩家记录:', {
         actualRoomId,
         userId,
@@ -287,14 +304,14 @@ export class RoomService {
         throw new Error(`加入房间失败: ${insertError.message}`);
       }
 
-      // 7. 获取更新后的房间信息
+      // 8. 获取更新后的房间信息
       console.log('🔍 获取更新后的房间信息...');
       const updatedRoom = await this.getRoomDetails(actualRoomId, client);
 
-      // 8. 更新缓存
+      // 9. 更新缓存
       await this.cacheRoom(updatedRoom);
 
-      // 9. 清除房间列表缓存
+      // 10. 清除房间列表缓存
       await deleteCache(this.ROOM_LIST_CACHE_KEY);
 
       console.log(`✓ 玩家 ${userId} 加入房间 ${actualRoomId} (房间码: ${room.room_code})`);
