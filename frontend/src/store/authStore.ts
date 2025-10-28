@@ -32,17 +32,11 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       const response = await authApi.login({ email, password });
 
-      // 处理后端返回的数据结构 { success: true, data: { user, token, tokens } }
-      const data = response.data || response;
-      const token = data.token;
-      const user = data.user;
+      // authApi 已经处理了数据提取，直接使用
+      localStorage.setItem('token', response.token);
 
-      // 保存 token 到 localStorage
-      localStorage.setItem('token', token);
-
-      // 更新状态
       set({
-        user: user,
+        user: response.user,
         isAuthenticated: true,
         isLoading: false,
         error: null,
@@ -66,17 +60,11 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       const response = await authApi.register(data);
 
-      // 处理后端返回的数据结构 { success: true, data: { user, token, tokens } }
-      const responseData = response.data || response;
-      const token = responseData.token;
-      const user = responseData.user;
+      // authApi 已经处理了数据提取，直接使用
+      localStorage.setItem('token', response.token);
 
-      // 保存 token 到 localStorage
-      localStorage.setItem('token', token);
-
-      // 更新状态
       set({
-        user: user,
+        user: response.user,
         isAuthenticated: true,
         isLoading: false,
         error: null,

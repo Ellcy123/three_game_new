@@ -22,7 +22,21 @@ export interface UserData {
   updatedAt: string;
 }
 
-// 认证响应接口
+// 后端实际返回的响应结构
+interface BackendAuthResponse {
+  success: true;
+  data: {
+    user: UserData;
+    token: string;
+    tokens?: {
+      accessToken: string;
+      refreshToken: string;
+      expiresIn: number;
+    };
+  };
+}
+
+// 认证响应接口（给前端使用）
 export interface AuthResponse {
   user: UserData;
   token: string;
@@ -41,8 +55,8 @@ export const authApi = {
    * @returns 用户信息和 token
    */
   register: async (data: RegisterData): Promise<AuthResponse> => {
-    const response = await api.post<AuthResponse>('/api/v1/auth/register', data);
-    return response.data;
+    const response = await api.post<BackendAuthResponse>('/api/v1/auth/register', data);
+    return response.data.data; // 提取 data.data
   },
 
   /**
@@ -51,8 +65,8 @@ export const authApi = {
    * @returns 用户信息和 token
    */
   login: async (data: LoginData): Promise<AuthResponse> => {
-    const response = await api.post<AuthResponse>('/api/v1/auth/login', data);
-    return response.data;
+    const response = await api.post<BackendAuthResponse>('/api/v1/auth/login', data);
+    return response.data.data; // 提取 data.data
   },
 
   /**
