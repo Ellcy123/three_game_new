@@ -125,3 +125,6 @@ export interface SocketEventData {
 
 // 导出房间相关类型
 export * from './room.types';
+
+// 导出游戏逻辑相关类型
+export * from './game.types';
