@@ -161,7 +161,8 @@ export const joinRoom = asyncHandler(
         throw new AppError('房间ID不能为空', 400, 'INVALID_ROOM_ID');
       }
 
-      if (!character || !isValidCharacterType(character)) {
+      // 角色现在是可选的，可以在房间内再选择
+      if (character && !isValidCharacterType(character)) {
         throw new AppError('无效的角色类型', 400, 'INVALID_CHARACTER_TYPE');
       }
 
@@ -428,6 +429,55 @@ export const getCurrentRoom = asyncHandler(
 );
 
 /**
+ * 选择角色
+ *
+ * @route   POST /api/v1/rooms/:roomId/character
+ * @access  Private（需要认证）
+ */
+export const selectCharacter = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      // 1. 验证用户已认证
+      const userId = req.userId;
+
+      if (!userId) {
+        throw new AppError('用户未认证', 401, 'UNAUTHORIZED');
+      }
+
+      // 2. 获取房间ID
+      const { roomId } = req.params;
+
+      if (!roomId || roomId.trim().length === 0) {
+        throw new AppError('房间ID不能为空', 400, 'INVALID_ROOM_ID');
+      }
+
+      // 3. 验证请求体
+      const { character } = req.body;
+
+      if (!character || !isValidCharacterType(character)) {
+        throw new AppError('无效的角色类型', 400, 'INVALID_CHARACTER_TYPE');
+      }
+
+      console.log('🎭 选择角色请求:', { roomId, userId, character });
+
+      // 4. 调用服务选择角色
+      const room = await roomService.selectCharacter(roomId, userId, character);
+
+      // 5. 返回成功响应
+      res.status(200).json({
+        success: true,
+        data: {
+          room,
+          message: '角色选择成功',
+        },
+      } as ApiResponse);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
  * 导出控制器函数
  */
 export default {
@@ -437,4 +487,5 @@ export default {
   getRoomList,
   getRoomDetails,
   getCurrentRoom,
+  selectCharacter,
 };

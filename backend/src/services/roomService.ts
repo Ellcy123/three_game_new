@@ -251,31 +251,33 @@ export class RoomService {
         throw new Error('房间已满');
       }
 
-      // 6. 检查角色是否已被选择
-      const characterCheck = await client.query<{
-        id: number;
-        user_id: string;
-        character_type: string;
-      }>(
-        'SELECT id, user_id, character_type FROM room_players WHERE room_id = $1 AND character_type = $2',
-        [actualRoomId, request.character]
-      );
+      // 6. 检查角色是否已被选择（仅当提供了角色时）
+      if (request.character) {
+        const characterCheck = await client.query<{
+          id: number;
+          user_id: string;
+          character_type: string;
+        }>(
+          'SELECT id, user_id, character_type FROM room_players WHERE room_id = $1 AND character_type = $2',
+          [actualRoomId, request.character]
+        );
 
-      if (characterCheck.rows.length > 0 && characterCheck.rows[0]) {
-        const occupiedBy = characterCheck.rows[0];
-        console.error(`❌ 角色 ${request.character} 已被占用:`, {
-          occupiedByUserId: occupiedBy.user_id,
-          currentUserId: userId,
-          recordId: occupiedBy.id,
-        });
-        throw new Error(`该角色已被其他玩家选择（被用户 ${occupiedBy.user_id} 占用）`);
+        if (characterCheck.rows.length > 0 && characterCheck.rows[0]) {
+          const occupiedBy = characterCheck.rows[0];
+          console.error(`❌ 角色 ${request.character} 已被占用:`, {
+            occupiedByUserId: occupiedBy.user_id,
+            currentUserId: userId,
+            recordId: occupiedBy.id,
+          });
+          throw new Error(`该角色已被其他玩家选择（被用户 ${occupiedBy.user_id} 占用）`);
+        }
       }
 
       // 7. 加入房间
       console.log('🔍 准备插入玩家记录:', {
         actualRoomId,
         userId,
-        character: request.character,
+        character: request.character || null,
         username: request.username,
       });
 
@@ -283,7 +285,7 @@ export class RoomService {
         await client.query(
           `INSERT INTO room_players (room_id, user_id, character_type, player_status)
            VALUES ($1, $2, $3, 'active')`,
-          [actualRoomId, userId, request.character]
+          [actualRoomId, userId, request.character || null]
         );
 
         // 手动更新房间玩家计数（不依赖触发器）
@@ -315,6 +317,57 @@ export class RoomService {
       await deleteCache(this.ROOM_LIST_CACHE_KEY);
 
       console.log(`✓ 玩家 ${userId} 加入房间 ${actualRoomId} (房间码: ${room.room_code})`);
+      return updatedRoom;
+    });
+  }
+
+  /**
+   * 选择角色
+   *
+   * 在房间内选择或更改角色
+   *
+   * @param roomId 房间ID
+   * @param userId 用户ID
+   * @param character 角色类型
+   * @returns Promise<GameRoom> 更新后的房间信息
+   */
+  async selectCharacter(roomId: string, userId: string, character: CharacterType): Promise<GameRoom> {
+    return transaction(async (client: PoolClient) => {
+      console.log('🔍 选择角色:', { roomId, userId, character });
+
+      // 1. 验证用户在房间中
+      const playerCheck = await client.query(
+        'SELECT id, character_type FROM room_players WHERE room_id = $1 AND user_id = $2',
+        [roomId, userId]
+      );
+
+      if (playerCheck.rows.length === 0) {
+        throw new Error('您不在此房间中');
+      }
+
+      // 2. 检查角色是否被其他玩家占用
+      const characterCheck = await client.query(
+        'SELECT user_id FROM room_players WHERE room_id = $1 AND character_type = $2 AND user_id != $3',
+        [roomId, character, userId]
+      );
+
+      if (characterCheck.rows.length > 0) {
+        throw new Error('该角色已被其他玩家选择');
+      }
+
+      // 3. 更新角色
+      await client.query(
+        'UPDATE room_players SET character_type = $1 WHERE room_id = $2 AND user_id = $3',
+        [character, roomId, userId]
+      );
+
+      // 4. 获取更新后的房间信息
+      const updatedRoom = await this.getRoomDetails(roomId, client);
+
+      // 5. 更新缓存
+      await this.cacheRoom(updatedRoom);
+
+      console.log(`✓ 用户 ${userId} 在房间 ${roomId} 选择了角色 ${character}`);
       return updatedRoom;
     });
   }

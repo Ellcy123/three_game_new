@@ -61,7 +61,7 @@ export function registerRoomHandlers(io: any, socket: AuthenticatedSocket): void
     async (
       data: {
         room_id: string;
-        character_type: CharacterType;
+        character_type?: CharacterType;
         character_name: string;
       },
       callback?: (response: any) => void
@@ -72,7 +72,7 @@ export function registerRoomHandlers(io: any, socket: AuthenticatedSocket): void
         // ========================================
         // 1. 验证必需参数
         // ========================================
-        if (!data.room_id || !data.character_type || !data.character_name) {
+        if (!data.room_id || !data.character_name) {
           throw new Error('缺少必需参数');
         }
 
@@ -81,10 +81,10 @@ export function registerRoomHandlers(io: any, socket: AuthenticatedSocket): void
         }
 
         // ========================================
-        // 2. 验证角色类型
+        // 2. 验证角色类型（如果提供）
         // ========================================
         const validCharacters = ['cat', 'dog', 'turtle'];
-        if (!validCharacters.includes(data.character_type)) {
+        if (data.character_type && !validCharacters.includes(data.character_type)) {
           throw new Error('无效的角色类型');
         }
 
@@ -112,7 +112,7 @@ export function registerRoomHandlers(io: any, socket: AuthenticatedSocket): void
         const playerData: RoomPlayerRedisData = {
           userId: socket.userId,
           username: socket.username,
-          characterType: data.character_type,
+          characterType: (data.character_type || 'cat') as CharacterType, // 默认值，实际会在房间内选择
           characterName: data.character_name,
           socketId: socket.id,
           status: 'active',
@@ -455,6 +455,85 @@ export function registerRoomHandlers(io: any, socket: AuthenticatedSocket): void
           error: {
             code: 'START_GAME_ERROR',
             message: error instanceof Error ? error.message : '开始游戏失败',
+          },
+        });
+      }
+    }
+  );
+
+  // ========================================
+  // 选择角色事件
+  // ========================================
+  socket.on(
+    'room:select_character',
+    async (
+      data: {
+        room_id: string;
+        character_type: CharacterType;
+      },
+      callback?: (response: any) => void
+    ) => {
+      try {
+        logger.info(`🎭 用户 ${socket.username} (${socket.userId}) 选择角色: ${data.character_type}`);
+
+        // ========================================
+        // 1. 验证必需参数
+        // ========================================
+        if (!data.room_id || !data.character_type) {
+          throw new Error('缺少必需参数');
+        }
+
+        if (!socket.userId) {
+          throw new Error('用户未认证');
+        }
+
+        // ========================================
+        // 2. 验证角色类型
+        // ========================================
+        const validCharacters = ['cat', 'dog', 'turtle'];
+        if (!validCharacters.includes(data.character_type)) {
+          throw new Error('无效的角色类型');
+        }
+
+        // ========================================
+        // 3. 调用服务选择角色
+        // ========================================
+        const room = await roomService.selectCharacter(
+          data.room_id,
+          socket.userId,
+          data.character_type
+        );
+
+        // ========================================
+        // 4. 广播给房间内所有玩家（包括自己）
+        // ========================================
+        io.to(data.room_id).emit('room:character_selected', {
+          user_id: socket.userId,
+          username: socket.username,
+          character_type: data.character_type,
+          room,
+          timestamp: Date.now(),
+        });
+
+        // ========================================
+        // 5. 返回成功响应
+        // ========================================
+        callback?.({
+          success: true,
+          message: '角色选择成功',
+          data: {
+            room,
+          },
+        });
+
+        logger.info(`✅ 用户 ${socket.username} 成功选择角色: ${data.character_type}`);
+      } catch (error) {
+        logger.error(`❌ 选择角色失败:`, error);
+        callback?.({
+          success: false,
+          error: {
+            code: 'SELECT_CHARACTER_ERROR',
+            message: error instanceof Error ? error.message : '选择角色失败',
           },
         });
       }

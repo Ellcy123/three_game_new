@@ -14,6 +14,7 @@ import {
   getRoomList,
   getRoomDetails,
   getCurrentRoom,
+  selectCharacter,
 } from '../controllers/roomController';
 import { authMiddleware } from '../middleware/auth';
 
@@ -133,9 +134,28 @@ router.get('/', getRoomList);
 router.get('/:roomId', getRoomDetails);
 
 /**
+ * @route   POST /api/v1/rooms/:roomId/character
+ * @desc    选择角色（房间内）
+ * @access  Private（需要认证）
+ * @params  roomId: string          // 房间ID
+ * @body    {
+ *   character: string       // 角色类型（必填，cat/dog/turtle）
+ * }
+ * @response {
+ *   success: true,
+ *   data: {
+ *     room: GameRoom,
+ *     message: string
+ *   }
+ * }
+ */
+router.post('/:roomId/character', selectCharacter);
+
+/**
  * 路由优先级说明：
  * - /current 放在 /:roomId 之前，确保不会被参数路由捕获
  * - /create, /join, /leave 使用 POST 方法，不会与 GET 方法的 / 和 /:roomId 冲突
+ * - /:roomId/character 放在 /:roomId 之后，更具体的路由
  */
 
 export default router;
