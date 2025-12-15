@@ -1,0 +1,1033 @@
+{
+  "levelId": "level1",
+  "name": "密室逃脱",
+  "initialAreas": ["main_room"],
+  "events": [
+    {
+      "id": "evt_suitcase_turtle",
+      "trigger": { "keyword1": "suitcase", "keyword2": "turtle", "rawInput": "" },
+      "prerequisites": [],
+      "conditions": [
+        { "type": "character_trapped", "target": "cat" }
+      ],
+      "effects": [],
+      "isOneTime": false,
+      "storyText": "{player3}走到行李箱前，发现上面有一个三位数密码锁。从行李箱内传来微弱的呼救声...",
+      "requiresPassword": true,
+      "passwordType": "suitcase"
+    },
+    {
+      "id": "evt_suitcase_cat_free",
+      "trigger": { "keyword1": "suitcase", "keyword2": "cat", "rawInput": "" },
+      "prerequisites": ["evt_cat_rescued"],
+      "conditions": [
+        { "type": "character_free", "target": "cat" }
+      ],
+      "effects": [
+        { "type": "item", "value": "key" }
+      ],
+      "isOneTime": true,
+      "storyText": "{player1}怒火中烧，用爪子疯狂撕烂了行李箱。行李箱的内衬里掉出了一把钥匙。"
+    },
+    {
+      "id": "evt_wardrobe_turtle",
+      "trigger": { "keyword1": "wardrobe", "keyword2": "turtle", "rawInput": "" },
+      "prerequisites": [],
+      "conditions": [],
+      "effects": [],
+      "isOneTime": false,
+      "storyText": "{player3}在衣柜下方发现了一个隐藏的按钮。",
+      "requiresChoice": true,
+      "choices": ["按下按钮", "不按"]
+    },
+    {
+      "id": "evt_small_room_unlock",
+      "trigger": { "keyword1": "button", "keyword2": "press", "rawInput": "" },
+      "prerequisites": [],
+      "conditions": [],
+      "effects": [
+        { "type": "unlock", "value": "small_room" }
+      ],
+      "isOneTime": true,
+      "storyText": "衣柜缓缓移开，后面居然有一个小房间！小房间里有一个巨大的囚笼，{player2}被困在其中！房间内还有一个花瓶和一台电脑。墙上有一扇只能用四位密码触发打开的大门。"
+    },
+    {
+      "id": "evt_pool_turtle",
+      "trigger": { "keyword1": "pool", "keyword2": "turtle", "rawInput": "" },
+      "prerequisites": [],
+      "conditions": [],
+      "effects": [
+        { "type": "item", "value": "wooden_box" }
+      ],
+      "isOneTime": true,
+      "storyText": "{player3}潜入水中，在水底发现了一个木盒。水下似乎还有其他物品，但无法拿取。"
+    },
+    {
+      "id": "evt_pool_cat",
+      "trigger": { "keyword1": "pool", "keyword2": "cat", "rawInput": "" },
+      "prerequisites": ["evt_cat_rescued"],
+      "conditions": [
+        { "type": "character_free", "target": "cat" }
+      ],
+      "effects": [
+        { "type": "health", "target": "cat", "value": -1 }
+      ],
+      "isOneTime": true,
+      "storyText": "{player1}跳入水中（不会游泳），因为要面子没有呼救，呛了好几口水。"
+    },
+    {
+      "id": "evt_pool_dog",
+      "trigger": { "keyword1": "pool", "keyword2": "dog", "rawInput": "" },
+      "prerequisites": ["evt_dog_rescued"],
+      "conditions": [
+        { "type": "character_free", "target": "dog" }
+      ],
+      "effects": [
+        { "type": "item", "value": "monitor" }
+      ],
+      "isOneTime": true,
+      "storyText": "{player2}从水潭里捞起了一个显示器。这显示器防水性能不错，体感还挺凑凑的。"
+    },
+    {
+      "id": "evt_wooden_box_dog",
+      "trigger": { "keyword1": "wooden_box", "keyword2": "dog", "rawInput": "" },
+      "prerequisites": ["evt_pool_turtle", "evt_dog_rescued"],
+      "conditions": [
+        { "type": "has_item", "target": "wooden_box" },
+        { "type": "character_free", "target": "dog" }
+      ],
+      "effects": [
+        { "type": "letter", "value": "E" }
+      ],
+      "isOneTime": true,
+      "storyText": "{player2}用牙齿咬开了木盒。木盒里有一张字条，上面写着字母：E"
+    },
+    {
+      "id": "evt_key_cage",
+      "trigger": { "keyword1": "key", "keyword2": "cage", "rawInput": "" },
+      "prerequisites": ["evt_suitcase_cat_free", "evt_small_room_unlock"],
+      "conditions": [
+        { "type": "has_item", "target": "key" },
+        { "type": "area_unlocked", "target": "small_room" },
+        { "type": "character_trapped", "target": "dog" }
+      ],
+      "effects": [
+        { "type": "free_character", "value": "dog" }
+      ],
+      "isOneTime": true,
+      "storyText": "用钥匙打开了囚笼的锁。{player2}冲了出来，自由了！"
+    },
+    {
+      "id": "evt_wardrobe_cat",
+      "trigger": { "keyword1": "wardrobe", "keyword2": "cat", "rawInput": "" },
+      "prerequisites": ["evt_cat_rescued"],
+      "conditions": [
+        { "type": "character_free", "target": "cat" }
+      ],
+      "effects": [
+        { "type": "letter", "value": "C" }
+      ],
+      "isOneTime": true,
+      "storyText": "{player1}在衣柜上面发现了一个模模糊糊的字母：C"
+    },
+    {
+      "id": "evt_monitor_computer",
+      "trigger": { "keyword1": "monitor", "keyword2": "computer", "rawInput": "" },
+      "prerequisites": ["evt_pool_dog", "evt_small_room_unlock"],
+      "conditions": [
+        { "type": "has_item", "target": "monitor" },
+        { "type": "area_unlocked", "target": "small_room" }
+      ],
+      "effects": [
+        { "type": "letter", "value": "H" }
+      ],
+      "isOneTime": true,
+      "storyText": "你们合力将显示器连接到电脑上。电脑成功开机了！屏幕上显示着一个字母：H"
+    },
+    {
+      "id": "evt_vase_cat",
+      "trigger": { "keyword1": "vase", "keyword2": "cat", "rawInput": "" },
+      "prerequisites": ["evt_cat_rescued", "evt_small_room_unlock"],
+      "conditions": [
+        { "type": "character_free", "target": "cat" },
+        { "type": "area_unlocked", "target": "small_room" }
+      ],
+      "effects": [
+        { "type": "letter", "value": "O" }
+      ],
+      "isOneTime": true,
+      "storyText": "{player1}把脑袋探进了花瓶当中。观察到瓶内居然有一个字母：O"
+    },
+    {
+      "id": "evt_door_password",
+      "trigger": { "keyword1": "door", "keyword2": "password", "rawInput": "" },
+      "prerequisites": [],
+      "conditions": [
+        { "type": "area_unlocked", "target": "small_room" }
+      ],
+      "effects": [],
+      "isOneTime": false,
+      "storyText": "大门需要输入四位密码。",
+      "requiresPassword": true,
+      "passwordType": "door"
+    },
+    {
+      "id": "evt_key_wardrobe",
+      "trigger": { "keyword1": "key", "keyword2": "wardrobe", "rawInput": "" },
+      "prerequisites": ["evt_suitcase_cat_free"],
+      "conditions": [
+        { "type": "has_item", "target": "key" }
+      ],
+      "effects": [
+        { "type": "health", "target": "current", "value": 1 }
+      ],
+      "isOneTime": false,
+      "storyText": "打开衣柜暗格，发现了一颗红水晶心。食用后感觉精力充沛！"
+    },
+    {
+      "id": "evt_pool_wardrobe",
+      "trigger": { "keyword1": "pool", "keyword2": "wardrobe", "rawInput": "" },
+      "prerequisites": [],
+      "conditions": [],
+      "effects": [
+        { "type": "health", "target": "current", "value": -1 }
+      ],
+      "isOneTime": true,
+      "storyText": "试图搬动衣柜时碰到了头，意识到这个世界是有引力的..."
+    },
+    {
+      "id": "evt_turtle_dog",
+      "trigger": { "keyword1": "turtle", "keyword2": "dog", "rawInput": "" },
+      "prerequisites": ["evt_dog_rescued"],
+      "conditions": [
+        { "type": "character_free", "target": "dog" }
+      ],
+      "effects": [
+        { "type": "health", "target": "dog", "value": 1 }
+      ],
+      "isOneTime": true,
+      "storyText": "{player3}教{player2}强身健体的方法，{player2}学会后感觉身体更强壮了！"
+    },
+    {
+      "id": "evt_cat_dog",
+      "trigger": { "keyword1": "cat", "keyword2": "dog", "rawInput": "" },
+      "prerequisites": ["evt_cat_rescued", "evt_dog_rescued"],
+      "conditions": [
+        { "type": "character_free", "target": "cat" },
+        { "type": "character_free", "target": "dog" }
+      ],
+      "effects": [
+        { "type": "health", "target": "cat", "value": -1 }
+      ],
+      "isOneTime": true,
+      "storyText": "{player1}嘲讽{player2}身材，二人打了起来，{player1}惨败。"
+    },
+    {
+      "id": "evt_cat_turtle",
+      "trigger": { "keyword1": "cat", "keyword2": "turtle", "rawInput": "" },
+      "prerequisites": ["evt_cat_rescued"],
+      "conditions": [
+        { "type": "character_free", "target": "cat" }
+      ],
+      "effects": [],
+      "isOneTime": true,
+      "storyText": "{player1}嘲笑{player3}长得奇怪，{player3}懒得理会。"
+    },
+    {
+      "id": "evt_dog_turtle",
+      "trigger": { "keyword1": "dog", "keyword2": "turtle", "rawInput": "" },
+      "prerequisites": ["evt_dog_rescued"],
+      "conditions": [
+        { "type": "character_free", "target": "dog" }
+      ],
+      "effects": [],
+      "isOneTime": true,
+      "storyText": "{player2}感谢{player3}救了自己，约定共同弄清处境。"
+    },
+    {
+      "id": "evt_suitcase_wardrobe",
+      "trigger": { "keyword1": "suitcase", "keyword2": "wardrobe", "rawInput": "" },
+      "prerequisites": [],
+      "conditions": [],
+      "effects": [],
+      "isOneTime": true,
+      "storyText": "将行李箱放入衣柜，打扫了一番后发现这并非自己的房间..."
+    },
+    {
+      "id": "evt_suitcase_pool",
+      "trigger": { "keyword1": "suitcase", "keyword2": "pool", "rawInput": "" },
+      "prerequisites": [],
+      "conditions": [
+        { "type": "character_trapped", "target": "cat" }
+      ],
+      "effects": [],
+      "isOneTime": true,
+      "storyText": "将行李箱做成了一艘\"梅利号\"船，在水潭中航行。船沉了，行李箱被捞了回来。"
+    },
+    {
+      "id": "evt_suitcase_monitor",
+      "trigger": { "keyword1": "suitcase", "keyword2": "monitor", "rawInput": "" },
+      "prerequisites": ["evt_pool_dog"],
+      "conditions": [
+        { "type": "has_item", "target": "monitor" }
+      ],
+      "effects": [],
+      "isOneTime": true,
+      "storyText": "这个组合被其他玩家吐槽\"智商异于常人\"，建议停手。"
+    },
+    {
+      "id": "evt_suitcase_computer",
+      "trigger": { "keyword1": "suitcase", "keyword2": "computer", "rawInput": "" },
+      "prerequisites": ["evt_small_room_unlock"],
+      "conditions": [
+        { "type": "area_unlocked", "target": "small_room" }
+      ],
+      "effects": [],
+      "isOneTime": true,
+      "storyText": "被其他玩家吐槽\"打算出差吗\"，建议就医检查。"
+    },
+    {
+      "id": "evt_suitcase_dog",
+      "trigger": { "keyword1": "suitcase", "keyword2": "dog", "rawInput": "" },
+      "prerequisites": ["evt_dog_rescued"],
+      "conditions": [
+        { "type": "character_free", "target": "dog" }
+      ],
+      "effects": [],
+      "isOneTime": false,
+      "storyText": "{player2}在行李箱上做了标记，效果未知..."
+    },
+    {
+      "id": "evt_wardrobe_dog",
+      "trigger": { "keyword1": "wardrobe", "keyword2": "dog", "rawInput": "" },
+      "prerequisites": ["evt_dog_rescued"],
+      "conditions": [
+        { "type": "character_free", "target": "dog" }
+      ],
+      "effects": [],
+      "isOneTime": false,
+      "storyText": "{player2}在衣柜上做了标记，效果未知..."
+    },
+    {
+      "id": "evt_computer_cat",
+      "trigger": { "keyword1": "computer", "keyword2": "cat", "rawInput": "" },
+      "prerequisites": ["evt_small_room_unlock", "evt_cat_rescued"],
+      "conditions": [
+        { "type": "area_unlocked", "target": "small_room" },
+        { "type": "character_free", "target": "cat" }
+      ],
+      "effects": [],
+      "isOneTime": true,
+      "storyText": "{player1}发现电脑损坏了，无法维修。"
+    },
+    {
+      "id": "evt_computer_turtle",
+      "trigger": { "keyword1": "computer", "keyword2": "turtle", "rawInput": "" },
+      "prerequisites": ["evt_small_room_unlock"],
+      "conditions": [
+        { "type": "area_unlocked", "target": "small_room" }
+      ],
+      "effects": [],
+      "isOneTime": true,
+      "storyText": "{player3}发现电脑损坏了，无法维修。"
+    },
+    {
+      "id": "evt_computer_dog",
+      "trigger": { "keyword1": "computer", "keyword2": "dog", "rawInput": "" },
+      "prerequisites": ["evt_small_room_unlock", "evt_dog_rescued"],
+      "conditions": [
+        { "type": "area_unlocked", "target": "small_room" },
+        { "type": "character_free", "target": "dog" }
+      ],
+      "effects": [],
+      "isOneTime": false,
+      "storyText": "{player2}在电脑上做了标记，效果未知..."
+    },
+    {
+      "id": "evt_vase_turtle",
+      "trigger": { "keyword1": "vase", "keyword2": "turtle", "rawInput": "" },
+      "prerequisites": ["evt_small_room_unlock"],
+      "conditions": [
+        { "type": "area_unlocked", "target": "small_room" }
+      ],
+      "effects": [],
+      "isOneTime": true,
+      "storyText": "{player3}未发现花瓶的玄机，让其他玩家试试吧。"
+    },
+    {
+      "id": "evt_vase_dog",
+      "trigger": { "keyword1": "vase", "keyword2": "dog", "rawInput": "" },
+      "prerequisites": ["evt_small_room_unlock", "evt_dog_rescued"],
+      "conditions": [
+        { "type": "area_unlocked", "target": "small_room" },
+        { "type": "character_free", "target": "dog" }
+      ],
+      "effects": [],
+      "isOneTime": false,
+      "storyText": "{player2}在花瓶上做了标记，效果未知..."
+    },
+    {
+      "id": "evt_cage_cat_trapped",
+      "trigger": { "keyword1": "cage", "keyword2": "cat", "rawInput": "" },
+      "prerequisites": ["evt_small_room_unlock", "evt_cat_rescued"],
+      "conditions": [
+        { "type": "area_unlocked", "target": "small_room" },
+        { "type": "character_free", "target": "cat" },
+        { "type": "character_trapped", "target": "dog" }
+      ],
+      "effects": [],
+      "isOneTime": true,
+      "storyText": "{player1}嘲笑被囚的{player2}，被{player2}怒骂了一顿。"
+    },
+    {
+      "id": "evt_cage_turtle_trapped",
+      "trigger": { "keyword1": "cage", "keyword2": "turtle", "rawInput": "" },
+      "prerequisites": ["evt_small_room_unlock"],
+      "conditions": [
+        { "type": "area_unlocked", "target": "small_room" },
+        { "type": "character_trapped", "target": "dog" }
+      ],
+      "effects": [],
+      "isOneTime": true,
+      "storyText": "{player3}安慰{player2}，称会想办法救他出来。"
+    },
+    {
+      "id": "evt_cage_dog",
+      "trigger": { "keyword1": "cage", "keyword2": "dog", "rawInput": "" },
+      "prerequisites": ["evt_small_room_unlock", "evt_dog_rescued"],
+      "conditions": [
+        { "type": "area_unlocked", "target": "small_room" },
+        { "type": "character_free", "target": "dog" }
+      ],
+      "effects": [],
+      "isOneTime": false,
+      "storyText": "{player2}在囚笼上做了标记，效果未知..."
+    },
+    {
+      "id": "evt_monitor_turtle",
+      "trigger": { "keyword1": "monitor", "keyword2": "turtle", "rawInput": "" },
+      "prerequisites": ["evt_pool_dog"],
+      "conditions": [
+        { "type": "has_item", "target": "monitor" }
+      ],
+      "effects": [
+        { "type": "health", "target": "turtle", "value": 1 }
+      ],
+      "isOneTime": true,
+      "storyText": "{player3}通过显示器反光\"臭美\"了一番，心情愉悦！"
+    },
+    {
+      "id": "evt_monitor_dog",
+      "trigger": { "keyword1": "monitor", "keyword2": "dog", "rawInput": "" },
+      "prerequisites": ["evt_pool_dog", "evt_dog_rescued"],
+      "conditions": [
+        { "type": "has_item", "target": "monitor" },
+        { "type": "character_free", "target": "dog" }
+      ],
+      "effects": [],
+      "isOneTime": true,
+      "storyText": "{player2}发现显示器防水性能不错，性能优于当前电脑。"
+    },
+    {
+      "id": "evt_monitor_cat",
+      "trigger": { "keyword1": "monitor", "keyword2": "cat", "rawInput": "" },
+      "prerequisites": ["evt_pool_dog", "evt_cat_rescued"],
+      "conditions": [
+        { "type": "has_item", "target": "monitor" },
+        { "type": "character_free", "target": "cat" }
+      ],
+      "effects": [
+        { "type": "destroy_item", "value": "monitor" }
+      ],
+      "isOneTime": true,
+      "storyText": "{player1}砸坏了显示器，显示器消失了！"
+    },
+    {
+      "id": "evt_wooden_box_turtle",
+      "trigger": { "keyword1": "wooden_box", "keyword2": "turtle", "rawInput": "" },
+      "prerequisites": ["evt_pool_turtle"],
+      "conditions": [
+        { "type": "has_item", "target": "wooden_box" }
+      ],
+      "effects": [],
+      "isOneTime": false,
+      "storyText": "{player3}无法打开木盒，需要其他角色帮忙。"
+    },
+    {
+      "id": "evt_wooden_box_cat",
+      "trigger": { "keyword1": "wooden_box", "keyword2": "cat", "rawInput": "" },
+      "prerequisites": ["evt_pool_turtle", "evt_cat_rescued"],
+      "conditions": [
+        { "type": "has_item", "target": "wooden_box" },
+        { "type": "character_free", "target": "cat" }
+      ],
+      "effects": [],
+      "isOneTime": false,
+      "storyText": "{player1}无法打开木盒，需要其他角色帮忙。"
+    },
+    {
+      "id": "evt_key_pool",
+      "trigger": { "keyword1": "key", "keyword2": "pool", "rawInput": "" },
+      "prerequisites": ["evt_suitcase_cat_free"],
+      "conditions": [
+        { "type": "has_item", "target": "key" }
+      ],
+      "effects": [],
+      "isOneTime": true,
+      "storyText": "用钥匙打水漂，被其他玩家背后吐槽\"智力不健全\"。"
+    },
+    {
+      "id": "evt_key_computer",
+      "trigger": { "keyword1": "key", "keyword2": "computer", "rawInput": "" },
+      "prerequisites": ["evt_suitcase_cat_free", "evt_small_room_unlock"],
+      "conditions": [
+        { "type": "has_item", "target": "key" },
+        { "type": "area_unlocked", "target": "small_room" }
+      ],
+      "effects": [],
+      "isOneTime": true,
+      "storyText": "钥匙插入电脑后无效果，这不是开机键..."
+    },
+    {
+      "id": "evt_key_vase",
+      "trigger": { "keyword1": "key", "keyword2": "vase", "rawInput": "" },
+      "prerequisites": ["evt_suitcase_cat_free", "evt_small_room_unlock"],
+      "conditions": [
+        { "type": "has_item", "target": "key" },
+        { "type": "area_unlocked", "target": "small_room" }
+      ],
+      "effects": [],
+      "isOneTime": true,
+      "storyText": "试图用钥匙打开花瓶，被其他玩家建议就医检查。"
+    },
+    {
+      "id": "evt_key_wooden_box",
+      "trigger": { "keyword1": "key", "keyword2": "wooden_box", "rawInput": "" },
+      "prerequisites": ["evt_suitcase_cat_free", "evt_pool_turtle"],
+      "conditions": [
+        { "type": "has_item", "target": "key" },
+        { "type": "has_item", "target": "wooden_box" }
+      ],
+      "effects": [],
+      "isOneTime": true,
+      "storyText": "钥匙型号不匹配，无法打开木盒。"
+    },
+    {
+      "id": "evt_pool_vase",
+      "trigger": { "keyword1": "pool", "keyword2": "vase", "rawInput": "" },
+      "prerequisites": ["evt_small_room_unlock"],
+      "conditions": [
+        { "type": "area_unlocked", "target": "small_room" }
+      ],
+      "effects": [
+        { "type": "health", "target": "current", "value": -1 }
+      ],
+      "isOneTime": true,
+      "storyText": "饮用了花瓶内带细菌的水，得了肠胃炎..."
+    },
+    {
+      "id": "evt_pool_cage_trapped",
+      "trigger": { "keyword1": "pool", "keyword2": "cage", "rawInput": "" },
+      "prerequisites": ["evt_small_room_unlock"],
+      "conditions": [
+        { "type": "area_unlocked", "target": "small_room" },
+        { "type": "character_trapped", "target": "dog" }
+      ],
+      "effects": [
+        { "type": "health", "target": "current", "value": -2 }
+      ],
+      "isOneTime": true,
+      "storyText": "试图将囚笼浸入水中，被{player2}咬伤了！"
+    },
+    {
+      "id": "evt_pool_cage_free",
+      "trigger": { "keyword1": "pool", "keyword2": "cage", "rawInput": "" },
+      "prerequisites": ["evt_small_room_unlock", "evt_dog_rescued"],
+      "conditions": [
+        { "type": "area_unlocked", "target": "small_room" },
+        { "type": "character_free", "target": "dog" }
+      ],
+      "effects": [
+        { "type": "health", "target": "current", "value": -1 }
+      ],
+      "isOneTime": true,
+      "storyText": "囚笼入水后出现河神，被打了一耳光。"
+    },
+    {
+      "id": "evt_wardrobe_computer",
+      "trigger": { "keyword1": "wardrobe", "keyword2": "computer", "rawInput": "" },
+      "prerequisites": ["evt_small_room_unlock"],
+      "conditions": [
+        { "type": "area_unlocked", "target": "small_room" }
+      ],
+      "effects": [],
+      "isOneTime": true,
+      "storyText": "将电脑放入衣柜开机，无效果，被其他玩家嘲笑。"
+    },
+    {
+      "id": "evt_wardrobe_vase",
+      "trigger": { "keyword1": "wardrobe", "keyword2": "vase", "rawInput": "" },
+      "prerequisites": ["evt_small_room_unlock"],
+      "conditions": [
+        { "type": "area_unlocked", "target": "small_room" }
+      ],
+      "effects": [],
+      "isOneTime": true,
+      "storyText": "给花瓶穿衣服（不合身），被其他玩家疏远。"
+    },
+    {
+      "id": "evt_door_turtle",
+      "trigger": { "keyword1": "door", "keyword2": "turtle", "rawInput": "" },
+      "prerequisites": [],
+      "conditions": [
+        { "type": "area_unlocked", "target": "small_room" }
+      ],
+      "effects": [],
+      "isOneTime": false,
+      "storyText": "大门需要输入四位密码。",
+      "requiresPassword": true,
+      "passwordType": "door"
+    },
+    {
+      "id": "evt_door_cat",
+      "trigger": { "keyword1": "door", "keyword2": "cat", "rawInput": "" },
+      "prerequisites": [],
+      "conditions": [
+        { "type": "area_unlocked", "target": "small_room" },
+        { "type": "character_free", "target": "cat" }
+      ],
+      "effects": [],
+      "isOneTime": false,
+      "storyText": "大门需要输入四位密码。",
+      "requiresPassword": true,
+      "passwordType": "door"
+    },
+    {
+      "id": "evt_door_dog",
+      "trigger": { "keyword1": "door", "keyword2": "dog", "rawInput": "" },
+      "prerequisites": [],
+      "conditions": [
+        { "type": "area_unlocked", "target": "small_room" },
+        { "type": "character_free", "target": "dog" }
+      ],
+      "effects": [],
+      "isOneTime": false,
+      "storyText": "大门需要输入四位密码。",
+      "requiresPassword": true,
+      "passwordType": "door"
+    },
+    {
+      "id": "evt_pool_monitor",
+      "trigger": { "keyword1": "pool", "keyword2": "monitor", "rawInput": "" },
+      "prerequisites": ["evt_pool_dog"],
+      "conditions": [
+        { "type": "has_item", "target": "monitor" }
+      ],
+      "effects": [
+        { "type": "destroy_item", "value": "monitor" }
+      ],
+      "isOneTime": true,
+      "storyText": "显示器被扔回水潭后消失了..."
+    },
+    {
+      "id": "evt_pool_computer",
+      "trigger": { "keyword1": "pool", "keyword2": "computer", "rawInput": "" },
+      "prerequisites": ["evt_small_room_unlock"],
+      "conditions": [
+        { "type": "area_unlocked", "target": "small_room" }
+      ],
+      "effects": [
+        { "type": "health", "target": "current", "value": 1 }
+      ],
+      "isOneTime": true,
+      "storyText": "电脑入水后出现河神，问你是否诚实。如实回答后，河神赐予你力量！"
+    },
+    {
+      "id": "evt_pool_wooden_box",
+      "trigger": { "keyword1": "pool", "keyword2": "wooden_box", "rawInput": "" },
+      "prerequisites": ["evt_pool_turtle"],
+      "conditions": [
+        { "type": "has_item", "target": "wooden_box" }
+      ],
+      "effects": [
+        { "type": "destroy_item", "value": "wooden_box" }
+      ],
+      "isOneTime": true,
+      "storyText": "木盒被扔回水潭后消失了..."
+    },
+    {
+      "id": "evt_suitcase_key",
+      "trigger": { "keyword1": "suitcase", "keyword2": "key", "rawInput": "" },
+      "prerequisites": ["evt_suitcase_cat_free"],
+      "conditions": [
+        { "type": "has_item", "target": "key" }
+      ],
+      "effects": [
+        { "type": "destroy_item", "value": "key" }
+      ],
+      "isOneTime": true,
+      "storyText": "钥匙放回行李箱后消失了...这可能不是个好主意。"
+    },
+    {
+      "id": "evt_suitcase_cage_trapped",
+      "trigger": { "keyword1": "suitcase", "keyword2": "cage", "rawInput": "" },
+      "prerequisites": ["evt_small_room_unlock"],
+      "conditions": [
+        { "type": "area_unlocked", "target": "small_room" },
+        { "type": "character_trapped", "target": "dog" }
+      ],
+      "effects": [
+        { "type": "health", "target": "dog", "value": -1 }
+      ],
+      "isOneTime": true,
+      "storyText": "用行李箱砸囚笼试图救{player2}，不慎砸伤了{player2}！"
+    },
+    {
+      "id": "evt_suitcase_cage_free",
+      "trigger": { "keyword1": "suitcase", "keyword2": "cage", "rawInput": "" },
+      "prerequisites": ["evt_small_room_unlock", "evt_dog_rescued"],
+      "conditions": [
+        { "type": "area_unlocked", "target": "small_room" },
+        { "type": "character_free", "target": "dog" }
+      ],
+      "effects": [],
+      "isOneTime": true,
+      "storyText": "将行李箱锁入囚笼，认为这样\"更安全\"。"
+    },
+    {
+      "id": "evt_suitcase_vase",
+      "trigger": { "keyword1": "suitcase", "keyword2": "vase", "rawInput": "" },
+      "prerequisites": ["evt_small_room_unlock"],
+      "conditions": [
+        { "type": "area_unlocked", "target": "small_room" }
+      ],
+      "effects": [],
+      "isOneTime": true,
+      "storyText": "将花瓶误认作青花瓷装入行李箱，被其他玩家指出仅值20元。"
+    },
+    {
+      "id": "evt_suitcase_wooden_box",
+      "trigger": { "keyword1": "suitcase", "keyword2": "wooden_box", "rawInput": "" },
+      "prerequisites": ["evt_pool_turtle"],
+      "conditions": [
+        { "type": "has_item", "target": "wooden_box" }
+      ],
+      "effects": [],
+      "isOneTime": true,
+      "storyText": "因同情木盒\"不自由\"，将其锁进行李箱。"
+    },
+    {
+      "id": "evt_wardrobe_cage_trapped",
+      "trigger": { "keyword1": "wardrobe", "keyword2": "cage", "rawInput": "" },
+      "prerequisites": ["evt_small_room_unlock"],
+      "conditions": [
+        { "type": "area_unlocked", "target": "small_room" },
+        { "type": "character_trapped", "target": "dog" }
+      ],
+      "effects": [
+        { "type": "health", "target": "current", "value": -2 }
+      ],
+      "isOneTime": true,
+      "storyText": "试图将囚笼锁入衣柜，被{player2}咬伤了！"
+    },
+    {
+      "id": "evt_wardrobe_cage_free",
+      "trigger": { "keyword1": "wardrobe", "keyword2": "cage", "rawInput": "" },
+      "prerequisites": ["evt_small_room_unlock", "evt_dog_rescued"],
+      "conditions": [
+        { "type": "area_unlocked", "target": "small_room" },
+        { "type": "character_free", "target": "dog" }
+      ],
+      "effects": [],
+      "isOneTime": true,
+      "storyText": "给囚笼内穿衣服（不合身），被其他玩家疏远。"
+    },
+    {
+      "id": "evt_wardrobe_wooden_box",
+      "trigger": { "keyword1": "wardrobe", "keyword2": "wooden_box", "rawInput": "" },
+      "prerequisites": ["evt_pool_turtle"],
+      "conditions": [
+        { "type": "has_item", "target": "wooden_box" }
+      ],
+      "effects": [
+        { "type": "health", "target": "all", "value": -1 }
+      ],
+      "isOneTime": true,
+      "storyText": "将木盒放入衣柜，讲了一个冷笑话导致其他玩家冻感冒了..."
+    },
+    {
+      "id": "evt_wardrobe_monitor",
+      "trigger": { "keyword1": "wardrobe", "keyword2": "monitor", "rawInput": "" },
+      "prerequisites": ["evt_pool_dog"],
+      "conditions": [
+        { "type": "has_item", "target": "monitor" }
+      ],
+      "effects": [],
+      "isOneTime": true,
+      "storyText": "这个组合被夸\"天才\"，触发了\"作者崇拜\"效果！"
+    },
+    {
+      "id": "evt_wooden_box_monitor",
+      "trigger": { "keyword1": "wooden_box", "keyword2": "monitor", "rawInput": "" },
+      "prerequisites": ["evt_pool_turtle", "evt_pool_dog"],
+      "conditions": [
+        { "type": "has_item", "target": "wooden_box" },
+        { "type": "has_item", "target": "monitor" }
+      ],
+      "effects": [
+        { "type": "destroy_item", "value": "monitor" }
+      ],
+      "isOneTime": true,
+      "storyText": "木盒砸坏了显示器，显示器无法使用了！"
+    },
+    {
+      "id": "evt_wooden_box_cage_trapped",
+      "trigger": { "keyword1": "wooden_box", "keyword2": "cage", "rawInput": "" },
+      "prerequisites": ["evt_pool_turtle", "evt_small_room_unlock"],
+      "conditions": [
+        { "type": "has_item", "target": "wooden_box" },
+        { "type": "area_unlocked", "target": "small_room" },
+        { "type": "character_trapped", "target": "dog" }
+      ],
+      "effects": [
+        { "type": "letter", "value": "E" }
+      ],
+      "isOneTime": true,
+      "storyText": "将木盒递给{player2}，{player2}用牙齿咬开了木盒。木盒里有一张字条，上面写着字母：E"
+    },
+    {
+      "id": "evt_wooden_box_cage_free",
+      "trigger": { "keyword1": "wooden_box", "keyword2": "cage", "rawInput": "" },
+      "prerequisites": ["evt_pool_turtle", "evt_small_room_unlock", "evt_dog_rescued"],
+      "conditions": [
+        { "type": "has_item", "target": "wooden_box" },
+        { "type": "area_unlocked", "target": "small_room" },
+        { "type": "character_free", "target": "dog" }
+      ],
+      "effects": [],
+      "isOneTime": true,
+      "storyText": "将木盒关入囚笼，被其他玩家吐槽。"
+    },
+    {
+      "id": "evt_wooden_box_vase",
+      "trigger": { "keyword1": "wooden_box", "keyword2": "vase", "rawInput": "" },
+      "prerequisites": ["evt_pool_turtle", "evt_small_room_unlock"],
+      "conditions": [
+        { "type": "has_item", "target": "wooden_box" },
+        { "type": "area_unlocked", "target": "small_room" }
+      ],
+      "effects": [
+        { "type": "letter", "value": "O" }
+      ],
+      "isOneTime": true,
+      "storyText": "用花瓶砸木盒，花瓶碎裂了！碎片中发现了字母：O"
+    },
+    {
+      "id": "evt_computer_cage_trapped",
+      "trigger": { "keyword1": "computer", "keyword2": "cage", "rawInput": "" },
+      "prerequisites": ["evt_small_room_unlock"],
+      "conditions": [
+        { "type": "area_unlocked", "target": "small_room" },
+        { "type": "character_trapped", "target": "dog" }
+      ],
+      "effects": [],
+      "isOneTime": true,
+      "storyText": "将电脑给{player2}玩，{player2}陷入了沉思..."
+    },
+    {
+      "id": "evt_computer_cage_free",
+      "trigger": { "keyword1": "computer", "keyword2": "cage", "rawInput": "" },
+      "prerequisites": ["evt_small_room_unlock", "evt_dog_rescued"],
+      "conditions": [
+        { "type": "area_unlocked", "target": "small_room" },
+        { "type": "character_free", "target": "dog" }
+      ],
+      "effects": [],
+      "isOneTime": true,
+      "storyText": "将电脑关入囚笼，命名为\"赛博监狱\"。"
+    },
+    {
+      "id": "evt_computer_vase",
+      "trigger": { "keyword1": "computer", "keyword2": "vase", "rawInput": "" },
+      "prerequisites": ["evt_small_room_unlock"],
+      "conditions": [
+        { "type": "area_unlocked", "target": "small_room" }
+      ],
+      "effects": [
+        { "type": "letter", "value": "O" },
+        { "type": "health", "target": "current", "value": -1 }
+      ],
+      "isOneTime": true,
+      "storyText": "用花瓶砸电脑，花瓶碎裂、手被划伤了！碎片中发现了字母：O"
+    },
+    {
+      "id": "evt_key_monitor",
+      "trigger": { "keyword1": "key", "keyword2": "monitor", "rawInput": "" },
+      "prerequisites": ["evt_suitcase_cat_free", "evt_pool_dog"],
+      "conditions": [
+        { "type": "has_item", "target": "key" },
+        { "type": "has_item", "target": "monitor" }
+      ],
+      "effects": [
+        { "type": "destroy_item", "value": "monitor" }
+      ],
+      "isOneTime": true,
+      "storyText": "用钥匙砸显示器，显示器损坏了！"
+    },
+    {
+      "id": "evt_key_cage_free",
+      "trigger": { "keyword1": "key", "keyword2": "cage", "rawInput": "" },
+      "prerequisites": ["evt_suitcase_cat_free", "evt_small_room_unlock", "evt_dog_rescued"],
+      "conditions": [
+        { "type": "has_item", "target": "key" },
+        { "type": "area_unlocked", "target": "small_room" },
+        { "type": "character_free", "target": "dog" }
+      ],
+      "effects": [],
+      "isOneTime": true,
+      "storyText": "将囚笼重新锁上了。"
+    },
+    {
+      "id": "evt_key_cat",
+      "trigger": { "keyword1": "key", "keyword2": "cat", "rawInput": "" },
+      "prerequisites": ["evt_suitcase_cat_free", "evt_cat_rescued"],
+      "conditions": [
+        { "type": "has_item", "target": "key" },
+        { "type": "character_free", "target": "cat" }
+      ],
+      "effects": [],
+      "isOneTime": false,
+      "storyText": "{player1}用钥匙挠后背，体感舒适。"
+    },
+    {
+      "id": "evt_key_dog",
+      "trigger": { "keyword1": "key", "keyword2": "dog", "rawInput": "" },
+      "prerequisites": ["evt_suitcase_cat_free", "evt_dog_rescued"],
+      "conditions": [
+        { "type": "has_item", "target": "key" },
+        { "type": "character_free", "target": "dog" }
+      ],
+      "effects": [],
+      "isOneTime": false,
+      "storyText": "{player2}将钥匙含在嘴里（个人习惯）。"
+    },
+    {
+      "id": "evt_key_turtle",
+      "trigger": { "keyword1": "key", "keyword2": "turtle", "rawInput": "" },
+      "prerequisites": ["evt_suitcase_cat_free"],
+      "conditions": [
+        { "type": "has_item", "target": "key" }
+      ],
+      "effects": [],
+      "isOneTime": false,
+      "storyText": "{player3}认为钥匙用于打开\"桌扇门\"。"
+    },
+    {
+      "id": "evt_monitor_wardrobe",
+      "trigger": { "keyword1": "monitor", "keyword2": "wardrobe", "rawInput": "" },
+      "prerequisites": ["evt_pool_dog"],
+      "conditions": [
+        { "type": "has_item", "target": "monitor" }
+      ],
+      "effects": [],
+      "isOneTime": true,
+      "storyText": "这个组合被夸\"天才\"，触发了\"作者崇拜\"效果！"
+    },
+    {
+      "id": "evt_monitor_vase",
+      "trigger": { "keyword1": "monitor", "keyword2": "vase", "rawInput": "" },
+      "prerequisites": ["evt_pool_dog", "evt_small_room_unlock"],
+      "conditions": [
+        { "type": "has_item", "target": "monitor" },
+        { "type": "area_unlocked", "target": "small_room" }
+      ],
+      "effects": [],
+      "isOneTime": true,
+      "storyText": "获得提醒：\"显示器+衣柜\"可能有惊喜！"
+    },
+    {
+      "id": "evt_vase_cage_trapped",
+      "trigger": { "keyword1": "vase", "keyword2": "cage", "rawInput": "" },
+      "prerequisites": ["evt_small_room_unlock"],
+      "conditions": [
+        { "type": "area_unlocked", "target": "small_room" },
+        { "type": "character_trapped", "target": "dog" }
+      ],
+      "effects": [],
+      "isOneTime": true,
+      "storyText": "将花瓶递给{player2}，{player2}不小心将其弄坏了。"
+    },
+    {
+      "id": "evt_vase_cage_free",
+      "trigger": { "keyword1": "vase", "keyword2": "cage", "rawInput": "" },
+      "prerequisites": ["evt_small_room_unlock", "evt_dog_rescued"],
+      "conditions": [
+        { "type": "area_unlocked", "target": "small_room" },
+        { "type": "character_free", "target": "dog" }
+      ],
+      "effects": [],
+      "isOneTime": true,
+      "storyText": "将花瓶关入囚笼，无效果（仅被其他玩家嘲笑）。"
+    },
+    {
+      "id": "evt_cage_cat_free",
+      "trigger": { "keyword1": "cage", "keyword2": "cat", "rawInput": "" },
+      "prerequisites": ["evt_small_room_unlock", "evt_cat_rescued", "evt_dog_rescued"],
+      "conditions": [
+        { "type": "area_unlocked", "target": "small_room" },
+        { "type": "character_free", "target": "cat" },
+        { "type": "character_free", "target": "dog" }
+      ],
+      "effects": [],
+      "isOneTime": true,
+      "storyText": "{player1}将自己关入囚笼，称\"好玩\"并让其他人救自己。"
+    },
+    {
+      "id": "evt_cage_turtle_free",
+      "trigger": { "keyword1": "cage", "keyword2": "turtle", "rawInput": "" },
+      "prerequisites": ["evt_small_room_unlock", "evt_dog_rescued"],
+      "conditions": [
+        { "type": "area_unlocked", "target": "small_room" },
+        { "type": "character_free", "target": "dog" }
+      ],
+      "effects": [],
+      "isOneTime": true,
+      "storyText": "{player3}检查囚笼下方，发现了一张\"跳关卡卡\"！"
+    },
+    {
+      "id": "evt_dog_cat",
+      "trigger": { "keyword1": "dog", "keyword2": "cat", "rawInput": "" },
+      "prerequisites": ["evt_cat_rescued", "evt_dog_rescued"],
+      "conditions": [
+        { "type": "character_free", "target": "cat" },
+        { "type": "character_free", "target": "dog" }
+      ],
+      "effects": [],
+      "isOneTime": true,
+      "storyText": "{player2}与{player1}互感\"眼熟\"，认为有特殊羁绊。"
+    },
+    {
+      "id": "evt_turtle_cat",
+      "trigger": { "keyword1": "turtle", "keyword2": "cat", "rawInput": "" },
+      "prerequisites": ["evt_cat_rescued"],
+      "conditions": [
+        { "type": "character_free", "target": "cat" }
+      ],
+      "effects": [],
+      "isOneTime": true,
+      "storyText": "{player3}督促{player1}行动，{player1}吐槽{player3}是\"装货\"。"
+    },
+    {
+      "id": "evt_wooden_box_computer",
+      "trigger": { "keyword1": "wooden_box", "keyword2": "computer", "rawInput": "" },
+      "prerequisites": ["evt_pool_turtle", "evt_small_room_unlock"],
+      "conditions": [
+        { "type": "has_item", "target": "wooden_box" },
+        { "type": "area_unlocked", "target": "small_room" }
+      ],
+      "effects": [],
+      "isOneTime": false,
+      "storyText": "木盒和电脑放在一起，没有任何效果。"
+    }
+  ]
+}

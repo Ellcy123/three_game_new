@@ -1,0 +1,11 @@
+{
+  "name": "@three-brothers/shared",
+  "version": "1.0.0",
+  "description": "共享类型和常量",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch"
+  }
+}
