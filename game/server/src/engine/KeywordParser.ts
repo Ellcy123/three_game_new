@@ -6,15 +6,36 @@ interface SynonymConfig {
   items: Record<string, string[]>;
 }
 
+/** 玩家名字映射 */
+interface PlayerNameMapping {
+  playerId: string;
+  customName: string;
+  characterType: string; // 'cat' | 'dog' | 'turtle'
+}
+
 /**
  * 关键词解析器
- * 负责解析玩家输入的关键词组合，支持同义词识别
+ * 负责解析玩家输入的关键词组合，支持同义词识别和玩家名字识别
  */
 export class KeywordParser {
   private synonymMap: Map<string, string> = new Map();
+  private playerNameMap: Map<string, string> = new Map(); // customName -> characterType
   
   constructor(config: SynonymConfig) {
     this.buildSynonymMap(config);
+  }
+
+  /**
+   * 设置玩家名字映射
+   * 将玩家自定义名字映射到角色类型
+   */
+  setPlayerNames(players: PlayerNameMapping[]): void {
+    this.playerNameMap.clear();
+    for (const player of players) {
+      if (player.customName) {
+        this.playerNameMap.set(player.customName.toLowerCase(), player.characterType);
+      }
+    }
   }
 
   /**
@@ -72,6 +93,7 @@ export class KeywordParser {
 
   /**
    * 将同义词标准化为标准关键词
+   * 优先检查玩家名字映射，然后检查同义词映射
    * 如果找不到映射，返回原词的小写形式
    */
   normalize(keyword: string): string {
@@ -79,6 +101,13 @@ export class KeywordParser {
       return '';
     }
     const lower = keyword.toLowerCase().trim();
+    
+    // 优先检查玩家名字映射
+    const characterType = this.playerNameMap.get(lower);
+    if (characterType) {
+      return characterType;
+    }
+    
     return this.synonymMap.get(lower) || lower;
   }
 

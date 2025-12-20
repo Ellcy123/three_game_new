@@ -436,11 +436,9 @@
         { "type": "has_item", "target": "monitor" },
         { "type": "character_free", "target": "cat" }
       ],
-      "effects": [
-        { "type": "destroy_item", "value": "monitor" }
-      ],
+      "effects": [],
       "isOneTime": true,
-      "storyText": "{player1}砸坏了显示器，显示器消失了！"
+      "storyText": "{player1}砸坏了显示器，显示器消失了！（开玩笑的，后面还要用呢）"
     },
     {
       "id": "evt_wooden_box_turtle",
@@ -623,11 +621,9 @@
       "conditions": [
         { "type": "has_item", "target": "monitor" }
       ],
-      "effects": [
-        { "type": "destroy_item", "value": "monitor" }
-      ],
+      "effects": [],
       "isOneTime": true,
-      "storyText": "显示器被扔回水潭后消失了..."
+      "storyText": "显示器被扔回水潭，但因为防水性能不错，又被捞了回来。"
     },
     {
       "id": "evt_pool_computer",
@@ -649,11 +645,9 @@
       "conditions": [
         { "type": "has_item", "target": "wooden_box" }
       ],
-      "effects": [
-        { "type": "destroy_item", "value": "wooden_box" }
-      ],
+      "effects": [],
       "isOneTime": true,
-      "storyText": "木盒被扔回水潭后消失了..."
+      "storyText": "木盒被扔回水潭后消失了...（开玩笑的，后面还要用呢）"
     },
     {
       "id": "evt_suitcase_key",
@@ -662,11 +656,9 @@
       "conditions": [
         { "type": "has_item", "target": "key" }
       ],
-      "effects": [
-        { "type": "destroy_item", "value": "key" }
-      ],
+      "effects": [],
       "isOneTime": true,
-      "storyText": "钥匙放回行李箱后消失了...这可能不是个好主意。"
+      "storyText": "钥匙放回行李箱后消失了...（开玩笑的，后面还要用呢）"
     },
     {
       "id": "evt_suitcase_cage_trapped",
@@ -774,11 +766,9 @@
         { "type": "has_item", "target": "wooden_box" },
         { "type": "has_item", "target": "monitor" }
       ],
-      "effects": [
-        { "type": "destroy_item", "value": "monitor" }
-      ],
+      "effects": [],
       "isOneTime": true,
-      "storyText": "木盒砸坏了显示器，显示器无法使用了！"
+      "storyText": "木盒砸坏了显示器，显示器无法使用了！（开玩笑的，后面还要用呢）"
     },
     {
       "id": "evt_wooden_box_cage_trapped",
@@ -868,11 +858,9 @@
         { "type": "has_item", "target": "key" },
         { "type": "has_item", "target": "monitor" }
       ],
-      "effects": [
-        { "type": "destroy_item", "value": "monitor" }
-      ],
+      "effects": [],
       "isOneTime": true,
-      "storyText": "用钥匙砸显示器，显示器损坏了！"
+      "storyText": "用钥匙砸显示器，显示器损坏了！（开玩笑的，后面还要用呢）"
     },
     {
       "id": "evt_key_cage_free",

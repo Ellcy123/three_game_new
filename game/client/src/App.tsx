@@ -1,11 +1,22 @@
 import { useSocket } from './hooks/useSocket';
+import { useBGM } from './hooks/useBGM';
 import { Lobby } from './components/Lobby';
 import { WaitingRoom } from './components/WaitingRoom';
 import { GameScreen } from './components/GameScreen';
+import HidingScreen from './components/HidingScreen';
+import { TurtleSoupScreen } from './components/TurtleSoupScreen';
+import StoryScreen from './components/StoryScreen';
+import MouseKingScreen from './components/MouseKingScreen';
+import ParrotScreen from './components/ParrotScreen';
+import DeathScreen from './components/DeathScreen';
+import EndingScreen from './components/EndingScreen';
+import { ChatRoom } from './components/ChatRoom';
+import { BGMControl } from './components/BGMControl';
 
 function App() {
   const {
     isConnected,
+    isReconnecting,
     room,
     gameState,
     eventResult,
@@ -22,8 +33,93 @@ function App() {
     sendChoice,
     revivePlayer,
     clearError,
-    clearEventResult
+    clearEventResult,
+    // 第二关
+    currentLevel,
+    hidingState,
+    hidingAttackResult,
+    levelStory,
+    currentStoryIndex,
+    hidingNextStory,
+    hidingNextPhase,
+    hidingSelectArea,
+    hidingConfirmSelection,
+    // 第三幕
+    storyState,
+    storyNextStory,
+    storyNextPhase,
+    storySelectBranch,
+    storyMakeChoice,
+    // BOSS战 - 鼠鼠大王
+    bossState,
+    bossAttackResult,
+    bossSelectFighter,
+    bossAttackHole,
+    bossNextRound,
+    bossStartBattle,
+    // BOSS战 - 百变小鹦
+    parrotState,
+    parrotStartBattle,
+    parrotSubmitAnswer,
+    parrotNextRound,
+    // BOSS战 - 死神
+    deathState,
+    deathStartBattle,
+    deathSetBet,
+    deathSetChoice,
+    deathConfirmBet,
+    deathRoll,
+    deathNextRound,
+    // 结局
+    endingId,
+    // 海龟汤
+    soupState,
+    soupQuestionResult,
+    clearSoupQuestionResult,
+    soupNextStory,
+    soupNextPhase,
+    soupGoBack,
+    soupAskQuestion,
+    soupSubmitDeathCount,
+    soupSubmitIsHuman,
+    soupSubmitIdentity,
+    soupConfirmIdentities,
+    // 调试
+    debugSkipToLevel3,
+    debugSkipToBoss1,
+    debugSkipToBoss2,
+    debugSkipToBoss3,
+    debugSkipToSoup,
+    // 聊天室
+    chatMessages,
+    chatEnabled,
+    chatDisableReason,
+    sendChatMessage,
+    // 帮助功能
+    forceAdvance,
+    returnToLobby,
+    restartGame
   } = useSocket();
+
+  // 确定当前 BGM 关卡
+  // 如果没有进入房间，使用 lobby；如果在等待房间，使用 waiting；否则使用 currentLevel
+  const bgmLevel = !room ? 'lobby' : (!gameState ? 'waiting' : currentLevel);
+
+  // BGM 控制
+  const {
+    isPlaying: bgmPlaying,
+    isMuted: bgmMuted,
+    volume: bgmVolume,
+    toggleMute: toggleBgmMute,
+    togglePlay: toggleBgmPlay,
+    changeVolume: changeBgmVolume
+  } = useBGM(bgmLevel);
+
+  // 判断角色是否已揭示（海龟汤结束后）
+  const characterRevealed = gameState?.players?.some(p => p.characterRevealed) ?? false;
+
+  // 判断是否是房主
+  const isHost = room?.players?.find(p => p.id === playerId)?.isHost ?? false;
 
   // 显示错误提示
   if (error) {
@@ -46,47 +142,461 @@ function App() {
   // 连接中
   if (!isConnected) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-900">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-sky-300 via-green-200 to-emerald-300">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-400 mx-auto mb-4"></div>
-          <p className="text-gray-400">连接服务器中...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
+          <p className="text-green-700">连接服务器中...</p>
         </div>
       </div>
     );
   }
 
-  // 游戏进行中
+  // 重连中
+  if (isReconnecting) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-sky-300 via-green-200 to-emerald-300">
+        <div className="text-center">
+          <div className="text-6xl mb-4 animate-bounce">🔄</div>
+          <p className="text-green-700 text-lg font-medium">正在恢复游戏...</p>
+          <p className="text-green-600 text-sm mt-2">请稍候</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 结局画面
+  if (currentLevel === 'ending' && endingId && playerId) {
+    return (
+      <WithChat
+        chatMessages={chatMessages}
+        playerId={playerId}
+        chatEnabled={chatEnabled}
+        chatDisableReason={chatDisableReason}
+        characterRevealed={characterRevealed}
+        sendChatMessage={sendChatMessage}
+        onForceAdvance={forceAdvance}
+        onReturnToLobby={returnToLobby}
+        bgmPlaying={bgmPlaying}
+        bgmMuted={bgmMuted}
+        bgmVolume={bgmVolume}
+        onToggleBgmMute={toggleBgmMute}
+        onToggleBgmPlay={toggleBgmPlay}
+        onChangeBgmVolume={changeBgmVolume}
+      >
+        <EndingScreen
+          endingId={endingId}
+          onRestart={restartGame}
+          onMainMenu={returnToLobby}
+        />
+      </WithChat>
+    );
+  }
+
+  // BOSS战 - 死神
+  if (currentLevel === 'boss3' && playerId) {
+    // 等待 deathState 加载
+    if (!deathState) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-purple-200 via-violet-100 to-indigo-100">
+          <div className="text-center">
+            <div className="text-6xl mb-4 animate-bounce">💀</div>
+            <p className="text-purple-700 text-lg font-medium">正在进入BOSS战...</p>
+          </div>
+        </div>
+      );
+    }
+    return (
+      <WithChat
+        chatMessages={chatMessages}
+        playerId={playerId}
+        chatEnabled={chatEnabled}
+        chatDisableReason={chatDisableReason}
+        characterRevealed={characterRevealed}
+        chatTheme="light"
+        sendChatMessage={sendChatMessage}
+        onForceAdvance={forceAdvance}
+        onReturnToLobby={returnToLobby}
+        bgmPlaying={bgmPlaying}
+        bgmMuted={bgmMuted}
+        bgmVolume={bgmVolume}
+        onToggleBgmMute={toggleBgmMute}
+        onToggleBgmPlay={toggleBgmPlay}
+        onChangeBgmVolume={changeBgmVolume}
+      >
+        <DeathScreen
+          playerId={playerId}
+          state={deathState}
+          onStartBattle={deathStartBattle}
+          onSetBet={deathSetBet}
+          onSetChoice={deathSetChoice}
+          onConfirmBet={deathConfirmBet}
+          onRoll={deathRoll}
+          onNextRound={deathNextRound}
+        />
+      </WithChat>
+    );
+  }
+
+  // BOSS战 - 百变小鹦
+  if (currentLevel === 'boss2' && playerId) {
+    // 等待 parrotState 加载
+    if (!parrotState) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-green-200 via-emerald-100 to-teal-100">
+          <div className="text-center">
+            <div className="text-6xl mb-4 animate-bounce">🦜</div>
+            <p className="text-emerald-700 text-lg font-medium">正在进入BOSS战...</p>
+          </div>
+        </div>
+      );
+    }
+    return (
+      <WithChat
+        chatMessages={chatMessages}
+        playerId={playerId}
+        chatEnabled={chatEnabled}
+        chatDisableReason={chatDisableReason}
+        characterRevealed={characterRevealed}
+        chatTheme="light"
+        sendChatMessage={sendChatMessage}
+        onForceAdvance={forceAdvance}
+        onReturnToLobby={returnToLobby}
+        bgmPlaying={bgmPlaying}
+        bgmMuted={bgmMuted}
+        bgmVolume={bgmVolume}
+        onToggleBgmMute={toggleBgmMute}
+        onToggleBgmPlay={toggleBgmPlay}
+        onChangeBgmVolume={changeBgmVolume}
+      >
+        <ParrotScreen
+          playerId={playerId}
+          state={parrotState}
+          onStartBattle={parrotStartBattle}
+          onSubmitAnswer={parrotSubmitAnswer}
+          onNextRound={parrotNextRound}
+        />
+      </WithChat>
+    );
+  }
+
+  // BOSS战 - 鼠鼠大王
+  if (currentLevel === 'boss1' && playerId) {
+    // 等待 bossState 加载
+    if (!bossState) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-amber-200 via-yellow-100 to-orange-100">
+          <div className="text-center">
+            <div className="text-6xl mb-4 animate-bounce">🐀</div>
+            <p className="text-amber-700 text-lg font-medium">正在进入BOSS战...</p>
+          </div>
+        </div>
+      );
+    }
+    return (
+      <WithChat
+        chatMessages={chatMessages}
+        playerId={playerId}
+        chatEnabled={chatEnabled}
+        chatDisableReason={chatDisableReason}
+        characterRevealed={characterRevealed}
+        chatTheme="light"
+        sendChatMessage={sendChatMessage}
+        onForceAdvance={forceAdvance}
+        onReturnToLobby={returnToLobby}
+        bgmPlaying={bgmPlaying}
+        bgmMuted={bgmMuted}
+        bgmVolume={bgmVolume}
+        onToggleBgmMute={toggleBgmMute}
+        onToggleBgmPlay={toggleBgmPlay}
+        onChangeBgmVolume={changeBgmVolume}
+      >
+        <MouseKingScreen
+          playerId={playerId}
+          state={bossState}
+          onSelectFighter={bossSelectFighter}
+          onAttackHole={bossAttackHole}
+          onNextRound={bossNextRound}
+          onStartBattle={bossStartBattle}
+          lastResult={bossAttackResult}
+        />
+      </WithChat>
+    );
+  }
+
+  // 第三幕 - 个人剧情
+  if (currentLevel === 'level3' && storyState && playerId && gameState) {
+    return (
+      <WithChat
+        chatMessages={chatMessages}
+        playerId={playerId}
+        chatEnabled={chatEnabled}
+        chatDisableReason={chatDisableReason}
+        characterRevealed={characterRevealed}
+        chatTheme="light"
+        sendChatMessage={sendChatMessage}
+        onForceAdvance={forceAdvance}
+        onReturnToLobby={returnToLobby}
+        bgmPlaying={bgmPlaying}
+        bgmMuted={bgmMuted}
+        bgmVolume={bgmVolume}
+        onToggleBgmMute={toggleBgmMute}
+        onToggleBgmPlay={toggleBgmPlay}
+        onChangeBgmVolume={changeBgmVolume}
+      >
+        <StoryScreen
+          playerId={playerId}
+          players={gameState.players.map(p => ({ id: p.id, name: p.name, health: p.health }))}
+          storyState={storyState}
+          onNextStory={storyNextStory}
+          onSelectBranch={storySelectBranch}
+          onMakeChoice={storyMakeChoice}
+          onNextPhase={storyNextPhase}
+        />
+      </WithChat>
+    );
+  }
+
+  // 海龟汤关卡
+  if (currentLevel === 'turtle-soup' && soupState && playerId) {
+    return (
+      <WithChat
+        chatMessages={chatMessages}
+        playerId={playerId}
+        chatEnabled={chatEnabled}
+        chatDisableReason={chatDisableReason}
+        characterRevealed={characterRevealed}
+        sendChatMessage={sendChatMessage}
+        onForceAdvance={forceAdvance}
+        onReturnToLobby={returnToLobby}
+        bgmPlaying={bgmPlaying}
+        bgmMuted={bgmMuted}
+        bgmVolume={bgmVolume}
+        onToggleBgmMute={toggleBgmMute}
+        onToggleBgmPlay={toggleBgmPlay}
+        onChangeBgmVolume={changeBgmVolume}
+      >
+        <TurtleSoupScreen
+          soupState={soupState}
+          playerId={playerId}
+          questionResult={soupQuestionResult}
+          isHost={isHost}
+          onClearQuestionResult={clearSoupQuestionResult}
+          onNextStory={soupNextStory}
+          onNextPhase={soupNextPhase}
+          onGoBack={soupGoBack}
+          onAskQuestion={soupAskQuestion}
+          onSubmitDeathCount={soupSubmitDeathCount}
+          onSubmitIsHuman={soupSubmitIsHuman}
+          onSubmitIdentity={soupSubmitIdentity}
+          onConfirmIdentities={soupConfirmIdentities}
+        />
+      </WithChat>
+    );
+  }
+
+  // 第二关 - 藏匿
+  if (currentLevel === 'level2' && hidingState && playerId && room) {
+    return (
+      <WithChat
+        chatMessages={chatMessages}
+        playerId={playerId}
+        chatEnabled={chatEnabled}
+        chatDisableReason={chatDisableReason}
+        characterRevealed={characterRevealed}
+        sendChatMessage={sendChatMessage}
+        onForceAdvance={forceAdvance}
+        onReturnToLobby={returnToLobby}
+        bgmPlaying={bgmPlaying}
+        bgmMuted={bgmMuted}
+        bgmVolume={bgmVolume}
+        onToggleBgmMute={toggleBgmMute}
+        onToggleBgmPlay={toggleBgmPlay}
+        onChangeBgmVolume={changeBgmVolume}
+      >
+        <HidingScreen
+          roomId={room.id}
+          playerId={playerId}
+          players={hidingState.players}
+          isHost={isHost}
+          hidingState={hidingState}
+          storyTexts={levelStory}
+          currentStoryIndex={currentStoryIndex}
+          attackResult={hidingAttackResult}
+          onSelectArea={hidingSelectArea}
+          onConfirmSelection={hidingConfirmSelection}
+          onNextStory={hidingNextStory}
+          onNextPhase={hidingNextPhase}
+        />
+      </WithChat>
+    );
+  }
+
+  // 第一关 - 密室
   if (gameState && playerId) {
     return (
-      <GameScreen
-        gameState={gameState}
+      <WithChat
+        chatMessages={chatMessages}
         playerId={playerId}
-        eventResult={eventResult}
-        onAction={sendAction}
-        onPassword={sendPassword}
-        onChoice={sendChoice}
-        onRevive={revivePlayer}
-        onClearResult={clearEventResult}
-      />
+        chatEnabled={chatEnabled}
+        chatDisableReason={chatDisableReason}
+        characterRevealed={characterRevealed}
+        sendChatMessage={sendChatMessage}
+        onForceAdvance={forceAdvance}
+        onReturnToLobby={returnToLobby}
+        bgmPlaying={bgmPlaying}
+        bgmMuted={bgmMuted}
+        bgmVolume={bgmVolume}
+        onToggleBgmMute={toggleBgmMute}
+        onToggleBgmPlay={toggleBgmPlay}
+        onChangeBgmVolume={changeBgmVolume}
+        debugActions={{
+          skipToBoss1: debugSkipToBoss1,
+          skipToBoss2: debugSkipToBoss2,
+          skipToBoss3: debugSkipToBoss3,
+          skipToSoup: debugSkipToSoup,
+          skipToLevel3: debugSkipToLevel3
+        }}
+      >
+        <GameScreen
+          gameState={gameState}
+          playerId={playerId}
+          eventResult={eventResult}
+          onAction={sendAction}
+          onPassword={sendPassword}
+          onChoice={sendChoice}
+          onRevive={revivePlayer}
+          onClearResult={clearEventResult}
+        />
+      </WithChat>
     );
   }
 
   // 等待房间
   if (room && playerId) {
     return (
-      <WaitingRoom
-        room={room}
+      <WithChat
+        chatMessages={chatMessages}
         playerId={playerId}
-        canStart={canStart}
-        onReady={setReady}
-        onStartGame={startGame}
-        onLeave={leaveRoom}
-      />
+        chatEnabled={chatEnabled}
+        chatDisableReason={chatDisableReason}
+        characterRevealed={characterRevealed}
+        sendChatMessage={sendChatMessage}
+        onForceAdvance={forceAdvance}
+        onReturnToLobby={returnToLobby}
+        bgmPlaying={bgmPlaying}
+        bgmMuted={bgmMuted}
+        bgmVolume={bgmVolume}
+        onToggleBgmMute={toggleBgmMute}
+        onToggleBgmPlay={toggleBgmPlay}
+        onChangeBgmVolume={changeBgmVolume}
+        debugActions={{
+          skipToBoss1: debugSkipToBoss1,
+          skipToBoss2: debugSkipToBoss2,
+          skipToBoss3: debugSkipToBoss3,
+          skipToSoup: debugSkipToSoup,
+          skipToLevel3: debugSkipToLevel3
+        }}
+      >
+        <WaitingRoom
+          room={room}
+          playerId={playerId}
+          canStart={canStart}
+          onReady={setReady}
+          onStartGame={startGame}
+          onLeave={leaveRoom}
+        />
+      </WithChat>
     );
   }
 
   // 大厅
-  return <Lobby onCreateRoom={createRoom} onJoinRoom={joinRoom} />;
+  return (
+    <>
+      <Lobby onCreateRoom={createRoom} onJoinRoom={joinRoom} />
+      <BGMControl
+        isPlaying={bgmPlaying}
+        isMuted={bgmMuted}
+        volume={bgmVolume}
+        onToggleMute={toggleBgmMute}
+        onTogglePlay={toggleBgmPlay}
+        onVolumeChange={changeBgmVolume}
+      />
+    </>
+  );
+}
+
+// 带聊天室的布局包装器 - 右侧侧边栏布局
+function WithChat({
+  children,
+  chatMessages,
+  playerId,
+  chatEnabled,
+  chatDisableReason,
+  characterRevealed,
+  chatTheme = 'dark',
+  sendChatMessage,
+  onForceAdvance,
+  onReturnToLobby,
+  bgmPlaying,
+  bgmMuted,
+  bgmVolume,
+  onToggleBgmMute,
+  onToggleBgmPlay,
+  onChangeBgmVolume,
+  debugActions
+}: {
+  children: React.ReactNode;
+  chatMessages: any[];
+  playerId: string;
+  chatEnabled: boolean;
+  chatDisableReason?: string;
+  characterRevealed?: boolean;
+  chatTheme?: 'dark' | 'light';
+  sendChatMessage: (content: string) => void;
+  onForceAdvance?: () => void;
+  onReturnToLobby?: () => void;
+  bgmPlaying?: boolean;
+  bgmMuted?: boolean;
+  bgmVolume?: number;
+  onToggleBgmMute?: () => void;
+  onToggleBgmPlay?: () => void;
+  onChangeBgmVolume?: (volume: number) => void;
+  debugActions?: {
+    skipToBoss1?: () => void;
+    skipToBoss2?: () => void;
+    skipToBoss3?: () => void;
+    skipToSoup?: () => void;
+    skipToLevel3?: () => void;
+  };
+}) {
+  return (
+    <div className="min-h-screen pr-80">
+      {children}
+      <ChatRoom
+        messages={chatMessages}
+        playerId={playerId}
+        enabled={chatEnabled}
+        disableReason={chatDisableReason}
+        characterRevealed={characterRevealed}
+        theme={chatTheme}
+        onSendMessage={sendChatMessage}
+        onForceAdvance={onForceAdvance}
+        onReturnToLobby={onReturnToLobby}
+        debugActions={debugActions}
+      />
+      {/* BGM 控制 */}
+      {onToggleBgmMute && onToggleBgmPlay && onChangeBgmVolume && (
+        <BGMControl
+          isPlaying={bgmPlaying ?? false}
+          isMuted={bgmMuted ?? false}
+          volume={bgmVolume ?? 0.3}
+          onToggleMute={onToggleBgmMute}
+          onTogglePlay={onToggleBgmPlay}
+          onVolumeChange={onChangeBgmVolume}
+        />
+      )}
+    </div>
+  );
 }
 
 export default App;

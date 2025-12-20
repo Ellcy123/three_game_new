@@ -1,48 +1,41 @@
-# ECHO - 文字交互式多人协作解谜游戏
+# 三兄弟的冒险 - 多人在线协作解谜游戏
 
-> 一款关于宠物死后世界的温情TRPG风格游戏
+> 一款关于宠物死后世界的温情 TRPG 风格游戏
 
 ## 🎮 游戏简介
 
-ECHO是一款创新的文字交互式多人在线协作解谜游戏。3名玩家分别扮演猫、狗、龟三种角色，通过输入"道具A+道具B"或"角色+道具"的组合来触发事件，共同探索宠物死后的世界，揭开关于"ECHO"（回响）的温情故事。
+三兄弟的冒险是一款创新的文字交互式多人在线协作解谜游戏。3名玩家分别扮演猫、狗、龟三种角色，通过输入"道具A+道具B"或"角色+道具"的组合来触发事件，共同探索宠物死后的世界，揭开关于"ECHO"（回响）的温情故事。
 
 ### 核心特色
 
 - 🎭 **三角色协作** - 猫、狗、龟各具特殊能力
 - 🔤 **关键词解谜** - 60+道具组合等待发现
-- 🌐 **实时多人** - WebSocket实时同步，断线重连
-- 📖 **线性叙事** - 密室→藏匿→回忆→修炼→BOSS战→结局
+- 🌐 **实时多人** - WebSocket 实时同步，断线重连
+- 📖 **线性叙事** - 密室→藏匿→海龟汤→成长→BOSS战→结局
 - 💔 **情感共鸣** - 关于生命、陪伴与告别的故事
 
 ## 📁 项目结构
 
 ```
 three_game_new/
-├── docs/                          # 📚 项目文档
-│   ├── game-design.md            # 游戏设计文档
-│   ├── level-01.md               # 第一关详细设计
-│   ├── sever.md                  # 服务器架构设计
-│   └── implementation-plan.md    # 完整实现计划
+├── docs/                    # 📚 策划文档
+│   ├── game-design.md      # 游戏设计文档
+│   ├── 02_关卡_藏匿.md     # 藏匿关卡设计
+│   ├── 02_海龟汤.md        # 海龟汤关卡设计
+│   ├── 03_人物剧情_猫咪线.md
+│   ├── 04_人物剧情_乌龟线.md
+│   ├── 05_人物剧情_狗狗线.md
+│   ├── 06_BOSS战_*.md      # BOSS战设计
+│   └── 07_结局分支.md      # 结局设计
 │
-├── backend/                       # 🔧 后端服务
-│   ├── src/                      # 源代码
-│   │   ├── config/              # 配置
-│   │   ├── services/            # 业务逻辑
-│   │   │   ├── game/           # 游戏引擎核心
-│   │   │   ├── room/           # 房间管理
-│   │   │   └── auth/           # 认证服务
-│   │   ├── socket/             # Socket.IO处理
-│   │   ├── routes/             # API路由
-│   │   └── data/               # 游戏数据配置
-│   ├── tests/                   # 测试文件
-│   ├── package.json
-│   ├── tsconfig.json
-│   └── README.md
+├── game/                    # 🎮 游戏代码
+│   ├── client/             # 前端 React 应用
+│   ├── server/             # 后端 Node.js 服务
+│   ├── config/             # 游戏配置文件
+│   ├── shared/             # 共享类型定义
+│   └── RAILWAY_DEPLOY.md   # 部署指南
 │
-├── frontend/                      # 🎨 前端应用（待创建）
-│   └── (React + TypeScript + Vite)
-│
-└── README.md                      # 本文件
+└── .kiro/                   # Kiro 配置
 ```
 
 ## 🚀 快速开始
@@ -50,142 +43,74 @@ three_game_new/
 ### 前置要求
 
 - Node.js 18+
-- PostgreSQL 16+
-- Redis 7+
-- npm 或 pnpm
+- npm
 
-### 1. 克隆项目
+### 本地开发
 
 ```bash
-git clone <repository-url>
-cd three_game_new
+# 1. 安装依赖
+cd game/client && npm install
+cd ../server && npm install
+
+# 2. 启动开发服务器
+# 终端1 - 启动后端
+cd game/server && npm run dev
+
+# 终端2 - 启动前端
+cd game/client && npm run dev
 ```
 
-### 2. 启动后端
+- 前端：http://localhost:5173
+- 后端：http://localhost:3000
 
-详细步骤请查看：[backend/QUICKSTART.md](backend/QUICKSTART.md)
+### 生产构建
 
 ```bash
-cd backend
-npm install
-cp .env.example .env
-# 编辑 .env 配置数据库连接
-npm run dev
+cd game
+npm run build
+npm start
 ```
 
-后端服务将在 `http://localhost:3000` 启动。
+## 🌐 部署
 
-### 3. 启动前端（待实现）
+详细部署指南请查看：[game/RAILWAY_DEPLOY.md](game/RAILWAY_DEPLOY.md)
 
-```bash
-cd frontend
-npm install
-npm run dev
-```
+### Railway 部署（推荐）
 
-前端应用将在 `http://localhost:5173` 启动。
-
-## 📖 文档导航
-
-| 文档 | 描述 |
-|------|------|
-| [游戏设计文档](docs/game-design.md) | 完整的游戏玩法、关卡、角色设计 |
-| [第一关设计](docs/level-01.md) | 第一关60+道具组合详细列表 |
-| [服务器架构](docs/sever.md) | 后端技术架构和实现细节 |
-| [实现计划](docs/implementation-plan.md) | 12周完整开发计划和技术选型 |
-| [后端README](backend/README.md) | 后端项目说明和API文档 |
-| [后端快速启动](backend/QUICKSTART.md) | 后端环境配置和故障排查 |
-
-## 🎯 开发计划
-
-项目采用分阶段开发策略（共12周）：
-
-### Phase 1: 基础架构（Week 1）✅
-- [x] 项目初始化
-- [x] 后端框架搭建
-- [x] TypeScript配置
-- [x] 基础服务器和Socket.IO
-
-### Phase 2: 核心引擎（Week 2-3）🚧
-- [ ] 输入解析系统
-- [ ] 事件配置系统
-- [ ] 状态管理器
-- [ ] 游戏引擎核心
-
-### Phase 3: 实时通信（Week 3-4）
-- [ ] WebSocket房间管理
-- [ ] 状态同步机制
-- [ ] 断线重连
-
-### Phase 4: 第一关实现（Week 4-5）
-- [ ] UI组件开发
-- [ ] 60+道具组合配置
-- [ ] 完整通关流程
-
-### Phase 5+: 更多内容...
-
-详细计划请查看：[实现计划文档](docs/implementation-plan.md)
+1. 将代码推送到 GitHub
+2. 在 Railway 创建项目，选择 GitHub 仓库
+3. 设置 Root Directory 为 `game`
+4. 添加环境变量 `NODE_ENV=production`
+5. 部署完成后生成域名
 
 ## 🛠️ 技术栈
 
+### 前端
+- React 18 + TypeScript
+- Tailwind CSS
+- Socket.IO Client
+- Vite
+
 ### 后端
-- **Node.js 20** + **TypeScript 5** - 类型安全的服务器
-- **Express 4** - Web框架
-- **Socket.IO 4** - 实时双向通信
-- **PostgreSQL 16** - 主数据库
-- **Redis 7** - 缓存和实时状态
-- **JWT** - 用户认证
-- **Winston** - 日志系统
+- Node.js + TypeScript
+- Express
+- Socket.IO
 
-### 前端（计划）
-- **React 18** + **TypeScript 5** - UI框架
-- **Zustand** - 状态管理
-- **Socket.IO Client** - 实时通信
-- **Tailwind CSS** - 样式方案
-- **Vite 5** - 构建工具
+## 📖 游戏流程
 
-### 工具链
-- **ESLint** + **Prettier** - 代码规范
-- **Jest** - 测试框架
-- **Docker** - 容器化部署
-
-## 🧪 测试
-
-```bash
-# 后端测试
-cd backend
-npm test                # 运行所有测试
-npm run test:watch      # 监听模式
-npm run test:coverage   # 测试覆盖率
-```
-
-## 📝 代码规范
-
-- 使用TypeScript严格模式
-- 遵循ESLint规则
-- 使用Prettier格式化代码
-- Git提交信息格式：`feat:`, `fix:`, `docs:`, `refactor:`, `test:`
-
-## 🤝 贡献指南
-
-1. Fork本项目
-2. 创建特性分支：`git checkout -b feature/AmazingFeature`
-3. 提交更改：`git commit -m 'feat: Add some AmazingFeature'`
-4. 推送到分支：`git push origin feature/AmazingFeature`
-5. 提交Pull Request
+1. **第一幕：密室** - 三人醒来被困密室，通过道具组合解谜逃脱
+2. **第二幕：藏匿** - 躲避追击者的攻击
+3. **海龟汤** - 推理揭示真相，发现自己是宠物
+4. **第三幕：成长** - 各自修炼提升能力
+5. **BOSS战** - 鼠鼠大王 → 百变小鹦 → 死神
+6. **结局** - 根据选择触发不同结局
 
 ## 📄 许可证
 
 MIT License
 
-## 🙏 致谢
-
-感谢所有为这个项目做出贡献的开发者！
-
 ---
 
-**项目状态**: 🚧 开发中
+**项目状态**: ✅ 开发完成
 
-**当前版本**: v0.1.0 (Alpha)
-
-**最后更新**: 2025-10-27
+**最后更新**: 2025-12-20

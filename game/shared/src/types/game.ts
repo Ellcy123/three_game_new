@@ -69,3 +69,39 @@ export interface EventResult {
   /** 选择选项 */
   choices?: string[];
 }
+
+
+/** 第二关 - 藏匿区域 */
+export interface HidingAreaState {
+  id: string;
+  name: string;
+  capacity: number;
+  isDestroyed: boolean;
+  currentPlayers: string[];
+}
+
+/** 第二关 - 藏匿游戏状态 */
+export interface HidingGameState {
+  roomId: string;
+  levelId: 'level2';
+  currentRound: number;
+  maxRounds: number;
+  phase: 'story' | 'rules' | 'selecting' | 'attacking' | 'result' | 'final' | 'ending';
+  areas: HidingAreaState[];
+  destroyedAreas: string[];
+  playerSelections: Record<string, string | null>;
+  playerConfirmed: Record<string, boolean>;
+  playerHitCounts: Record<string, number>;
+  selectionTimeLeft: number;
+  lastAttackedArea: string | null;
+  hitPlayersThisRound: string[];
+  players: PlayerState[];
+}
+
+/** 第二关 - 攻击结果 */
+export interface HidingAttackResult {
+  attackedAreaId: string;
+  attackedAreaName: string;
+  hitPlayers: string[];
+  attackText: string;
+}

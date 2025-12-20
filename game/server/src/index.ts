@@ -36,7 +36,9 @@ app.use(express.json());
 
 // 生产环境下提供静态文件
 if (process.env.NODE_ENV === 'production') {
-  const clientDist = path.join(__dirname, '../../client/dist');
+  // 编译后 __dirname 是 server/dist/server/src，需要向上4级到 game，再进入 client/dist
+  const clientDist = path.join(__dirname, '../../../../client/dist');
+  console.log('静态文件目录:', clientDist);
   app.use(express.static(clientDist));
   
   // SPA 路由回退

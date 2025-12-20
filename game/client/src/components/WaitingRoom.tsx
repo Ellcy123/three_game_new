@@ -10,7 +10,11 @@ interface WaitingRoomProps {
   onLeave: () => void;
 }
 
-const CHARACTER_NAMES = ['角色1', '角色2', '角色3'];
+const CHARACTER_CONFIG = [
+  { name: '角色 1', emoji: '❓', color: 'from-orange-400/80 to-amber-400/80', borderColor: 'border-orange-400' },
+  { name: '角色 2', emoji: '❓', color: 'from-amber-400/80 to-yellow-400/80', borderColor: 'border-amber-400' },
+  { name: '角色 3', emoji: '❓', color: 'from-emerald-400/80 to-green-400/80', borderColor: 'border-emerald-400' }
+];
 
 export function WaitingRoom({ room, playerId, canStart, onReady, onStartGame, onLeave }: WaitingRoomProps) {
   const [selectedCharacter, setSelectedCharacter] = useState<number | null>(null);
@@ -34,50 +38,68 @@ export function WaitingRoom({ room, playerId, canStart, onReady, onStartGame, on
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="bg-gray-800 p-8 rounded-lg shadow-xl max-w-lg w-full">
+    <div className="min-h-screen flex items-center justify-center p-4 
+                    bg-gradient-to-b from-indigo-900 via-purple-900 to-slate-900">
+      {/* 背景装饰 */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-10 left-10 text-5xl animate-bounce opacity-60">🌙</div>
+        <div className="absolute top-20 right-20 text-4xl animate-bounce opacity-60" style={{ animationDelay: '0.5s' }}>⭐</div>
+        <div className="absolute bottom-20 left-20 text-4xl animate-bounce opacity-60" style={{ animationDelay: '1s' }}>✨</div>
+        <div className="absolute bottom-10 right-10 text-5xl animate-bounce opacity-60" style={{ animationDelay: '1.5s' }}>🌟</div>
+      </div>
+
+      <div className="relative bg-white/10 backdrop-blur-sm p-6 rounded-3xl shadow-2xl max-w-lg w-full
+                      border-2 border-purple-400">
+        {/* 标题栏 */}
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-yellow-400">等待房间</h2>
-          <div className="text-right">
-            <p className="text-gray-400 text-sm">房间代码</p>
-            <p className="text-2xl font-mono text-white tracking-widest">{room.code}</p>
+          <h2 className="text-2xl font-bold text-purple-300 flex items-center gap-2">
+            <span>🌙</span>
+            <span>等待房间</span>
+          </h2>
+          <div className="text-right bg-amber-500/20 px-4 py-2 rounded-2xl border-2 border-amber-400/50">
+            <p className="text-amber-400 text-xs">房间代码</p>
+            <p className="text-xl font-mono text-amber-300 tracking-widest font-bold">{room.code}</p>
           </div>
         </div>
 
         {/* 玩家列表 */}
         <div className="mb-6">
-          <h3 className="text-lg font-semibold text-gray-300 mb-3">玩家 ({room.players.length}/3)</h3>
+          <h3 className="text-lg font-semibold text-purple-300 mb-3 flex items-center gap-2">
+            <span>👥</span>
+            <span>玩家 ({room.players.length}/3)</span>
+          </h3>
           <div className="space-y-2">
-            {room.players.map((player) => (
-              <div
-                key={player.id}
-                className={`flex items-center justify-between p-3 rounded-lg ${
-                  player.id === playerId ? 'bg-yellow-900/30 border border-yellow-500/50' : 'bg-gray-700'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <span className="text-white">{player.customName || player.name}</span>
-                  {player.isHost && (
-                    <span className="text-xs bg-yellow-500 text-gray-900 px-2 py-0.5 rounded">房主</span>
-                  )}
+            {room.players.map((player) => {
+              return (
+                <div
+                  key={player.id}
+                  className={`flex items-center justify-between p-3 rounded-2xl transition-all
+                    ${player.id === playerId 
+                      ? 'bg-purple-500/20 border-2 border-purple-400' 
+                      : 'bg-white/5 border-2 border-purple-400/30'}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-purple-100 font-medium">{player.customName || player.name}</span>
+                    {player.isHost && (
+                      <span className="text-xs bg-amber-500 text-white px-2 py-0.5 rounded-full">👑 房主</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {player.isReady ? (
+                      <span className="text-emerald-400 text-sm font-medium">✅ 已准备</span>
+                    ) : (
+                      <span className="text-purple-400 text-sm">⏳ 等待中</span>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  {player.characterIndex && (
-                    <span className="text-gray-400 text-sm">
-                      {CHARACTER_NAMES[player.characterIndex - 1]}
-                    </span>
-                  )}
-                  {player.isReady ? (
-                    <span className="text-green-400 text-sm">✓ 已准备</span>
-                  ) : (
-                    <span className="text-gray-500 text-sm">等待中...</span>
-                  )}
-                </div>
-              </div>
-            ))}
+              );
+            })}
             {Array.from({ length: 3 - room.players.length }).map((_, i) => (
-              <div key={`empty-${i}`} className="p-3 rounded-lg bg-gray-700/50 border border-dashed border-gray-600">
-                <span className="text-gray-500">等待玩家加入...</span>
+              <div key={`empty-${i}`} className="p-3 rounded-2xl bg-white/5 border-2 border-dashed border-purple-400/30">
+                <span className="text-purple-400 flex items-center gap-2">
+                  <span>🪑</span>
+                  <span>等待玩家加入...</span>
+                </span>
               </div>
             ))}
           </div>
@@ -86,48 +108,61 @@ export function WaitingRoom({ room, playerId, canStart, onReady, onStartGame, on
         {/* 角色选择 */}
         {!isReady && (
           <div className="mb-6">
-            <h3 className="text-lg font-semibold text-gray-300 mb-3">选择角色</h3>
+            <h3 className="text-lg font-semibold text-purple-300 mb-3 flex items-center gap-2">
+              <span>🎭</span>
+              <span>选择角色</span>
+            </h3>
             <div className="grid grid-cols-3 gap-3 mb-4">
-              {[1, 2, 3].map((index) => {
-                const isTaken = takenCharacters.has(index);
-                const isSelected = selectedCharacter === index;
+              {CHARACTER_CONFIG.map((char, index) => {
+                const charIndex = index + 1;
+                const isTaken = takenCharacters.has(charIndex);
+                const isSelected = selectedCharacter === charIndex;
                 return (
                   <button
-                    key={index}
-                    onClick={() => !isTaken && setSelectedCharacter(index)}
+                    key={charIndex}
+                    onClick={() => !isTaken && setSelectedCharacter(charIndex)}
                     disabled={isTaken}
-                    className={`p-4 rounded-lg text-center transition-all ${
-                      isSelected
-                        ? 'bg-yellow-500 text-gray-900'
+                    className={`p-4 rounded-2xl text-center transition-all duration-200 border-3
+                      ${isSelected
+                        ? `bg-gradient-to-b ${char.color} ${char.borderColor} border-4 shadow-lg scale-105`
                         : isTaken
-                        ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
-                        : 'bg-gray-700 text-white hover:bg-gray-600'
-                    }`}
+                        ? 'bg-gray-700/50 text-gray-500 cursor-not-allowed border-gray-600 border-2'
+                        : `bg-gradient-to-b ${char.color} opacity-60 hover:opacity-100 border-2 ${char.borderColor} hover:scale-105`
+                      }`}
                   >
-                    <div className="text-2xl mb-1">
-                      {index === 1 ? '🐱' : index === 2 ? '🐕' : '🐢'}
-                    </div>
-                    <div className="text-sm">{CHARACTER_NAMES[index - 1]}</div>
-                    {isTaken && <div className="text-xs mt-1">已选择</div>}
+                    <div className="text-4xl mb-2">{char.emoji}</div>
+                    <div className={`text-sm font-medium ${isTaken ? 'text-gray-500' : 'text-white'}`}>{char.name}</div>
+                    {isTaken && <div className="text-xs mt-1 text-gray-500">已选择</div>}
                   </button>
                 );
               })}
             </div>
 
-            <input
-              type="text"
-              placeholder="给角色起个名字"
-              value={customName}
-              onChange={(e) => setCustomName(e.target.value)}
-              className="w-full px-4 py-3 bg-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-yellow-400 mb-4"
-            />
+            <div className="relative mb-4">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xl">✏️</span>
+              <input
+                type="text"
+                placeholder="给角色起个名字"
+                value={customName}
+                onChange={(e) => setCustomName(e.target.value)}
+                className="w-full pl-12 pr-4 py-3 bg-white/10 rounded-2xl text-white 
+                          placeholder-purple-300 border-2 border-purple-400/50
+                          focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-purple-400"
+              />
+            </div>
 
             <button
               onClick={handleReady}
               disabled={!selectedCharacter || !customName.trim()}
-              className="w-full py-3 bg-green-500 hover:bg-green-600 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-bold rounded-lg transition-colors"
+              className="w-full py-3 bg-gradient-to-r from-purple-500 to-indigo-500 
+                        hover:from-purple-600 hover:to-indigo-600 
+                        disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed 
+                        text-white font-bold rounded-2xl transition-all duration-200
+                        shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]
+                        flex items-center justify-center gap-2"
             >
-              准备
+              <span>✨</span>
+              <span>准备完毕</span>
             </button>
           </div>
         )}
@@ -136,18 +171,35 @@ export function WaitingRoom({ room, playerId, canStart, onReady, onStartGame, on
         {isHost && canStart && (
           <button
             onClick={onStartGame}
-            className="w-full py-3 bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-bold rounded-lg transition-colors mb-4"
+            className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 
+                      hover:from-amber-600 hover:to-orange-600 
+                      text-white font-bold rounded-2xl transition-all duration-200
+                      shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]
+                      flex items-center justify-center gap-2 mb-4 animate-pulse"
           >
-            开始游戏
+            <span>🎮</span>
+            <span>开始冒险！</span>
+            <span>🚀</span>
           </button>
         )}
 
         <button
           onClick={onLeave}
-          className="w-full py-2 text-gray-400 hover:text-white transition-colors"
+          className="w-full py-2 text-purple-400 hover:text-red-400 transition-colors
+                    flex items-center justify-center gap-2"
         >
-          离开房间
+          <span>🚪</span>
+          <span>离开房间</span>
         </button>
+
+        {/* 底部装饰 */}
+        <div className="flex justify-center gap-2 mt-4 text-xl opacity-60">
+          <span>🌙</span>
+          <span>⭐</span>
+          <span>✨</span>
+          <span>🌟</span>
+          <span>🌙</span>
+        </div>
       </div>
     </div>
   );

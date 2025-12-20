@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { ChatMessage } from '../components/ChatRoom';
 import { io, Socket } from 'socket.io-client';
 
 // 支持环境变量配置服务器地址，方便部署
@@ -18,6 +19,38 @@ const getSocketUrl = (): string => {
 };
 
 const SOCKET_URL = getSocketUrl();
+
+// sessionStorage keys for reconnection (每个标签页独立)
+const STORAGE_KEYS = {
+  PLAYER_ID: 'game_player_id',
+  ROOM_ID: 'game_room_id',
+  ROOM_CODE: 'game_room_code'
+};
+
+// 保存会话信息到sessionStorage（每个标签页独立，避免多账号冲突）
+const saveSession = (playerId: string, roomId: string, roomCode: string) => {
+  sessionStorage.setItem(STORAGE_KEYS.PLAYER_ID, playerId);
+  sessionStorage.setItem(STORAGE_KEYS.ROOM_ID, roomId);
+  sessionStorage.setItem(STORAGE_KEYS.ROOM_CODE, roomCode);
+};
+
+// 清除会话信息
+const clearSession = () => {
+  sessionStorage.removeItem(STORAGE_KEYS.PLAYER_ID);
+  sessionStorage.removeItem(STORAGE_KEYS.ROOM_ID);
+  sessionStorage.removeItem(STORAGE_KEYS.ROOM_CODE);
+};
+
+// 获取保存的会话信息
+const getSavedSession = () => {
+  const playerId = sessionStorage.getItem(STORAGE_KEYS.PLAYER_ID);
+  const roomId = sessionStorage.getItem(STORAGE_KEYS.ROOM_ID);
+  const roomCode = sessionStorage.getItem(STORAGE_KEYS.ROOM_CODE);
+  if (playerId && roomId && roomCode) {
+    return { playerId, roomId, roomCode };
+  }
+  return null;
+};
 
 export interface Player {
   id: string;
@@ -69,6 +102,50 @@ export interface Room {
   playerId?: string;
 }
 
+// 判断当前玩家是否是房主
+export const isPlayerHost = (room: Room | null, playerId: string | null): boolean => {
+  if (!room || !playerId) return false;
+  const player = room.players.find(p => p.id === playerId);
+  return player?.isHost ?? false;
+};
+
+// 第二关 - 藏匿相关类型
+export interface HidingArea {
+  id: string;
+  name: string;
+  capacity: number;
+  isDestroyed: boolean;
+  currentPlayers: string[];
+}
+
+export interface HidingState {
+  currentRound: number;
+  maxRounds: number;
+  phase: 'story' | 'rules' | 'selecting' | 'attacking' | 'result' | 'final' | 'ending';
+  areas: HidingArea[];
+  destroyedAreas: string[];
+  playerSelections: Record<string, string | null>;
+  playerConfirmed: Record<string, boolean>;
+  playerHitCounts: Record<string, number>;
+  selectionTimeLeft: number;
+  lastAttackedArea: string | null;
+  hitPlayersThisRound: string[];
+  players: { id: string; name: string; health: number }[];
+}
+
+export interface HidingAttackResult {
+  attackedAreaId: string;
+  attackedAreaName: string;
+  hitPlayers: string[];
+  attackText: string;
+}
+
+export interface LevelChangeData {
+  levelId: string;
+  levelName: string;
+  openingStory: string[];
+}
+
 export function useSocket() {
   const socketRef = useRef<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -78,6 +155,45 @@ export function useSocket() {
   const [error, setError] = useState<string | null>(null);
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [canStart, setCanStart] = useState(false);
+  
+  // 第二关状态
+  const [currentLevel, setCurrentLevel] = useState<string>('level1');
+  const [hidingState, setHidingState] = useState<HidingState | null>(null);
+  const [hidingAttackResult, setHidingAttackResult] = useState<HidingAttackResult | null>(null);
+  const [levelStory, setLevelStory] = useState<string[]>([]);
+  const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
+
+  // 第三幕状态
+  const [storyState, setStoryState] = useState<any>(null);
+
+  // BOSS战状态 - 鼠鼠大王
+  const [bossState, setBossState] = useState<any>(null);
+  const [bossAttackResult, setBossAttackResult] = useState<any>(null);
+
+  // BOSS战状态 - 百变小鹦
+  const [parrotState, setParrotState] = useState<any>(null);
+  const [parrotRoundResult, setParrotRoundResult] = useState<any>(null);
+
+  // BOSS战状态 - 死神
+  const [deathState, setDeathState] = useState<any>(null);
+  const [deathRoundResult, setDeathRoundResult] = useState<any>(null);
+
+  // 结局状态
+  const [endingId, setEndingId] = useState<'ending_0' | 'ending_1' | 'ending_2' | null>(null);
+
+  // 海龟汤状态
+  const [soupState, setSoupState] = useState<any>(null);
+  const [soupQuestionResult, setSoupQuestionResult] = useState<any>(null);
+
+  // 聊天室状态
+  const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const [chatEnabled, setChatEnabled] = useState(true);
+  const [chatDisableReason, setChatDisableReason] = useState<string | undefined>(undefined);
+  const lastSendTimeRef = useRef<number>(0);
+  
+  // 重连状态
+  const [isReconnecting, setIsReconnecting] = useState(false);
+  const hasAttemptedReconnect = useRef(false);
 
   useEffect(() => {
     const socket = io(SOCKET_URL);
@@ -86,6 +202,17 @@ export function useSocket() {
     socket.on('connect', () => {
       setIsConnected(true);
       setError(null);
+      
+      // 尝试自动重连
+      if (!hasAttemptedReconnect.current) {
+        hasAttemptedReconnect.current = true;
+        const savedSession = getSavedSession();
+        if (savedSession) {
+          console.log('尝试重连到房间:', savedSession.roomCode);
+          setIsReconnecting(true);
+          socket.emit('room:reconnect', savedSession.playerId, savedSession.roomId);
+        }
+      }
     });
 
     socket.on('disconnect', () => {
@@ -96,11 +223,56 @@ export function useSocket() {
     socket.on('room:created', (data: { id: string; code: string; playerId: string; players: Player[] }) => {
       setRoom({ id: data.id, code: data.code, players: data.players, playerId: data.playerId });
       setPlayerId(data.playerId);
+      // 保存会话信息
+      saveSession(data.playerId, data.id, data.code);
     });
 
     socket.on('room:joined', (data: { id: string; code: string; players: Player[]; playerId: string }) => {
       setRoom({ id: data.id, code: data.code, players: data.players, playerId: data.playerId });
       setPlayerId(data.playerId);
+      // 保存会话信息
+      saveSession(data.playerId, data.id, data.code);
+    });
+    
+    // 重连成功
+    socket.on('room:reconnected', (data: {
+      roomId: string;
+      roomCode: string;
+      playerId: string;
+      players: Player[];
+      gameState: GameState | null;
+      currentLevel: string;
+      hidingState: any;
+      storyState: any;
+      bossState: any;
+      parrotState: any;
+      deathState: any;
+      soupState: any;
+      endingId: string | null;
+      chatHistory: any[];
+    }) => {
+      console.log('重连成功:', data);
+      setIsReconnecting(false);
+      setRoom({ id: data.roomId, code: data.roomCode, players: data.players, playerId: data.playerId });
+      setPlayerId(data.playerId);
+      setCurrentLevel(data.currentLevel);
+      
+      if (data.gameState) setGameState(data.gameState);
+      if (data.hidingState) setHidingState(data.hidingState);
+      if (data.storyState) setStoryState(data.storyState);
+      if (data.bossState) setBossState(data.bossState);
+      if (data.parrotState) setParrotState(data.parrotState);
+      if (data.deathState) setDeathState(data.deathState);
+      if (data.soupState) setSoupState(data.soupState);
+      if (data.endingId) setEndingId(data.endingId as any);
+      if (data.chatHistory) setChatMessages(data.chatHistory);
+    });
+    
+    // 重连失败
+    socket.on('room:reconnectFailed', (reason: string) => {
+      console.log('重连失败:', reason);
+      setIsReconnecting(false);
+      clearSession(); // 清除无效的会话信息
     });
 
     socket.on('room:playerJoined', (player: Player) => {
@@ -152,6 +324,209 @@ export function useSocket() {
       });
     });
 
+    // 关卡切换事件
+    socket.on('game:levelChange', (data: LevelChangeData) => {
+      setCurrentLevel(data.levelId);
+      setLevelStory(data.openingStory);
+      setCurrentStoryIndex(0);
+    });
+
+    // 第二关 - 藏匿事件
+    socket.on('hiding:stateUpdate', (state: HidingState) => {
+      setHidingState(state);
+    });
+
+    socket.on('hiding:timerUpdate', (timeLeft: number) => {
+      setHidingState(prev => prev ? { ...prev, selectionTimeLeft: timeLeft } : null);
+    });
+
+    socket.on('hiding:attackResult', (result: HidingAttackResult) => {
+      setHidingAttackResult(result);
+    });
+
+    socket.on('hiding:nextStory', () => {
+      setCurrentStoryIndex(prev => prev + 1);
+    });
+
+    socket.on('hiding:roundStart', (data: { round: number; text: string }) => {
+      // 可以用来显示轮次开始文本
+      console.log(`第${data.round}轮: ${data.text}`);
+    });
+
+    socket.on('hiding:endingStory', (story: string[]) => {
+      setLevelStory(story);
+      setCurrentStoryIndex(0);
+    });
+
+    socket.on('hiding:error', (message: string) => {
+      setError(message);
+    });
+
+    // 第三幕 - 个人剧情事件
+    socket.on('story:stateUpdate', (state: any) => {
+      setStoryState(state);
+    });
+
+    // BOSS战事件
+    socket.on('boss:stateUpdate', (state: any) => {
+      setBossState(state);
+    });
+
+    socket.on('boss:nextStory', () => {
+      setCurrentStoryIndex(prev => prev + 1);
+    });
+
+    socket.on('boss:battleStart', (data: { text: string }) => {
+      console.log('战斗开始:', data.text);
+    });
+
+    socket.on('boss:fighterSelected', (data: { playerId: string; message: string }) => {
+      console.log('出战玩家:', data.message);
+    });
+
+    socket.on('boss:attackResult', (result: any) => {
+      setBossAttackResult(result);
+    });
+
+    socket.on('boss:victory', (data: { text: string[] }) => {
+      setLevelStory(data.text);
+      setCurrentStoryIndex(0);
+    });
+
+    socket.on('boss:defeat', (data: { text: string[]; ending: string }) => {
+      setLevelStory(data.text);
+      setCurrentStoryIndex(0);
+    });
+
+    socket.on('boss:skip', (data: { bossId: string; reason: string }) => {
+      console.log('跳过BOSS战:', data.reason);
+    });
+
+    socket.on('boss:error', (message: string) => {
+      setError(message);
+    });
+
+    // 百变小鹦BOSS战事件
+    socket.on('parrot:stateUpdate', (state: any) => {
+      setParrotState(state);
+    });
+
+    socket.on('parrot:roundResult', (result: any) => {
+      setParrotRoundResult(result);
+    });
+
+    socket.on('parrot:victory', (data: { text: string[] }) => {
+      setLevelStory(data.text);
+      setCurrentStoryIndex(0);
+    });
+
+    socket.on('parrot:defeat', (data: { text: string[]; ending: string }) => {
+      setLevelStory(data.text);
+      setCurrentStoryIndex(0);
+    });
+
+    socket.on('parrot:skip', (data: { bossId: string; reason: string }) => {
+      console.log('跳过百变小鹦:', data.reason);
+    });
+
+    socket.on('parrot:error', (message: string) => {
+      setError(message);
+    });
+
+    // 死神BOSS战事件
+    socket.on('death:stateUpdate', (state: any) => {
+      setDeathState(state);
+    });
+
+    socket.on('death:roundResult', (result: any) => {
+      setDeathRoundResult(result);
+    });
+
+    socket.on('death:victory', (data: { text: string[] }) => {
+      setLevelStory(data.text);
+      setCurrentStoryIndex(0);
+    });
+
+    socket.on('death:defeat', (data: { text: string[]; ending: string }) => {
+      setLevelStory(data.text);
+      setCurrentStoryIndex(0);
+    });
+
+    socket.on('death:skip', (data: { bossId: string; reason: string }) => {
+      console.log('跳过死神:', data.reason);
+    });
+
+    socket.on('death:error', (message: string) => {
+      setError(message);
+    });
+
+    // 结局事件
+    socket.on('game:ending', (data: { endingId: 'ending_0' | 'ending_1' | 'ending_2' }) => {
+      setEndingId(data.endingId);
+      setCurrentLevel('ending');
+    });
+
+    // 游戏重启事件
+    socket.on('game:restarted', (data: { room: Room }) => {
+      setRoom(data.room);
+      setGameState(null);
+      setCurrentLevel('level1');
+      setHidingState(null);
+      setStoryState(null);
+      setBossState(null);
+      setParrotState(null);
+      setDeathState(null);
+      setSoupState(null);
+      setEndingId(null);
+      setChatMessages([]);
+    });
+
+    // 海龟汤事件
+    socket.on('soup:stateUpdate', (state: any) => {
+      setSoupState(state);
+    });
+
+    socket.on('soup:questionResult', (result: any) => {
+      setSoupQuestionResult(result);
+    });
+
+    socket.on('soup:answerResult', (result: any) => {
+      console.log('答案结果:', result);
+    });
+
+    socket.on('soup:identityResults', (data: any) => {
+      console.log('身份判定结果:', data);
+    });
+
+    socket.on('soup:error', (message: string) => {
+      setError(message);
+    });
+
+    // 聊天室事件
+    socket.on('chat:message', (message: ChatMessage) => {
+      setChatMessages(prev => {
+        const newMessages = [...prev, message];
+        // 限制最多保留100条消息
+        if (newMessages.length > 100) {
+          return newMessages.slice(-100);
+        }
+        return newMessages;
+      });
+    });
+
+    socket.on('chat:history', (messages: ChatMessage[]) => {
+      setChatMessages(messages);
+    });
+
+    socket.on('chat:status', (data: { enabled: boolean; reason?: string }) => {
+      setChatEnabled(data.enabled);
+      setChatDisableReason(data.reason);
+    });
+
+    socket.on('chat:error', (data: { message: string }) => {
+      console.warn('聊天错误:', data.message);
+    });
+
     return () => {
       socket.disconnect();
     };
@@ -169,6 +544,7 @@ export function useSocket() {
     socketRef.current?.emit('room:leave');
     setRoom(null);
     setGameState(null);
+    clearSession(); // 清除会话信息
   }, []);
 
   const setReady = useCallback((characterIndex: number, customName: string) => {
@@ -203,8 +579,233 @@ export function useSocket() {
     setEventResult(null);
   }, []);
 
+  // 第二关 - 藏匿操作
+  const hidingNextStory = useCallback(() => {
+    socketRef.current?.emit('hiding:nextStory');
+    setCurrentStoryIndex(prev => prev + 1);
+  }, []);
+
+  const hidingNextPhase = useCallback(() => {
+    socketRef.current?.emit('hiding:nextPhase');
+    setHidingAttackResult(null);
+  }, []);
+
+  const hidingSelectArea = useCallback((areaId: string) => {
+    socketRef.current?.emit('hiding:selectArea', areaId);
+  }, []);
+
+  const hidingConfirmSelection = useCallback(() => {
+    socketRef.current?.emit('hiding:confirmSelection');
+  }, []);
+
+  const clearHidingAttackResult = useCallback(() => {
+    setHidingAttackResult(null);
+  }, []);
+
+  // 第三幕 - 个人剧情操作
+  const storyNextStory = useCallback(() => {
+    socketRef.current?.emit('story:nextStory');
+  }, []);
+
+  const storyNextPhase = useCallback(() => {
+    socketRef.current?.emit('story:nextPhase');
+  }, []);
+
+  const storySelectBranch = useCallback((branch: string) => {
+    socketRef.current?.emit('story:selectBranch', branch);
+  }, []);
+
+  const storyMakeChoice = useCallback((option: string) => {
+    socketRef.current?.emit('story:makeChoice', option);
+  }, []);
+
+  // 调试：直接跳到第三关
+  const debugSkipToLevel3 = useCallback(() => {
+    socketRef.current?.emit('debug:skipToLevel3');
+  }, []);
+
+  // 调试：直接跳到BOSS战
+  const debugSkipToBoss1 = useCallback(() => {
+    socketRef.current?.emit('debug:skipToBoss1');
+  }, []);
+
+  // BOSS战操作
+  const bossNextStory = useCallback(() => {
+    socketRef.current?.emit('boss:nextStory');
+    setCurrentStoryIndex(prev => prev + 1);
+  }, []);
+
+  const bossStartBattle = useCallback(() => {
+    socketRef.current?.emit('boss:startBattle');
+  }, []);
+
+  const bossSelectFighter = useCallback((fighterId: string) => {
+    socketRef.current?.emit('boss:selectFighter', fighterId);
+  }, []);
+
+  const bossAttackHole = useCallback((holeIndex: number) => {
+    socketRef.current?.emit('boss:attackHole', holeIndex);
+  }, []);
+
+  const bossNextRound = useCallback(() => {
+    socketRef.current?.emit('boss:nextRound');
+    setBossAttackResult(null);
+  }, []);
+
+  const clearBossAttackResult = useCallback(() => {
+    setBossAttackResult(null);
+  }, []);
+
+  // 百变小鹦BOSS战操作
+  const parrotStartBattle = useCallback(() => {
+    socketRef.current?.emit('parrot:startBattle');
+  }, []);
+
+  const parrotSubmitAnswer = useCallback((answer: string) => {
+    socketRef.current?.emit('parrot:submitAnswer', answer);
+  }, []);
+
+  const parrotNextRound = useCallback(() => {
+    socketRef.current?.emit('parrot:nextRound');
+    setParrotRoundResult(null);
+  }, []);
+
+  const clearParrotRoundResult = useCallback(() => {
+    setParrotRoundResult(null);
+  }, []);
+
+  // 调试：直接跳到百变小鹦
+  const debugSkipToBoss2 = useCallback(() => {
+    socketRef.current?.emit('debug:skipToBoss2');
+  }, []);
+
+  // 死神BOSS战操作
+  const deathStartBattle = useCallback(() => {
+    socketRef.current?.emit('death:startBattle');
+  }, []);
+
+  const deathSetBet = useCallback((amount: number) => {
+    socketRef.current?.emit('death:setBet', amount);
+  }, []);
+
+  const deathSetChoice = useCallback((choice: string) => {
+    socketRef.current?.emit('death:setChoice', choice);
+  }, []);
+
+  const deathConfirmBet = useCallback(() => {
+    socketRef.current?.emit('death:confirmBet');
+  }, []);
+
+  const deathRoll = useCallback(() => {
+    socketRef.current?.emit('death:roll');
+  }, []);
+
+  const deathNextRound = useCallback(() => {
+    socketRef.current?.emit('death:nextRound');
+    setDeathRoundResult(null);
+  }, []);
+
+  // 调试：直接跳到死神
+  const debugSkipToBoss3 = useCallback(() => {
+    socketRef.current?.emit('debug:skipToBoss3');
+  }, []);
+
+  // 调试：直接跳到海龟汤
+  const debugSkipToSoup = useCallback(() => {
+    socketRef.current?.emit('debug:skipToSoup');
+  }, []);
+
+  // 海龟汤操作
+  const soupNextStory = useCallback(() => {
+    socketRef.current?.emit('soup:nextStory');
+  }, []);
+
+  const soupNextPhase = useCallback(() => {
+    socketRef.current?.emit('soup:nextPhase');
+  }, []);
+
+  const soupGoBack = useCallback(() => {
+    socketRef.current?.emit('soup:goBack');
+  }, []);
+
+  const soupAskQuestion = useCallback((keywordId: string, questionId: string) => {
+    socketRef.current?.emit('soup:askQuestion', keywordId, questionId);
+  }, []);
+
+  const soupSubmitDeathCount = useCallback((answer: string) => {
+    socketRef.current?.emit('soup:submitDeathCount', answer);
+  }, []);
+
+  const soupSubmitIsHuman = useCallback((answer: string) => {
+    socketRef.current?.emit('soup:submitIsHuman', answer);
+  }, []);
+
+  const soupSubmitIdentity = useCallback((animalId: string) => {
+    socketRef.current?.emit('soup:submitIdentity', animalId);
+  }, []);
+
+  const soupConfirmIdentities = useCallback(() => {
+    socketRef.current?.emit('soup:confirmIdentities');
+  }, []);
+
+  const clearSoupQuestionResult = useCallback(() => {
+    setSoupQuestionResult(null);
+  }, []);
+
+  // 聊天室操作
+  const sendChatMessage = useCallback((content: string) => {
+    // 频率限制：500ms
+    const now = Date.now();
+    if (now - lastSendTimeRef.current < 500) {
+      console.warn('发送太频繁');
+      return;
+    }
+    lastSendTimeRef.current = now;
+    
+    socketRef.current?.emit('chat:send', { content });
+  }, []);
+
+  // 强制推进游戏（防卡死）
+  const forceAdvance = useCallback(() => {
+    socketRef.current?.emit('game:forceAdvance');
+  }, []);
+
+  // 重新开始游戏（回到等待房间，保持外层名字）
+  const restartGame = useCallback(() => {
+    socketRef.current?.emit('game:restart');
+    // 重置游戏状态但保持房间
+    setGameState(null);
+    setCurrentLevel('level1');
+    setHidingState(null);
+    setStoryState(null);
+    setBossState(null);
+    setParrotState(null);
+    setDeathState(null);
+    setSoupState(null);
+    setEndingId(null);
+    setChatMessages([]);
+  }, []);
+
+  // 返回大厅（放弃当前游戏，重新注册）
+  const returnToLobby = useCallback(() => {
+    socketRef.current?.emit('room:leave');
+    setRoom(null);
+    setGameState(null);
+    setCurrentLevel('level1');
+    setHidingState(null);
+    setStoryState(null);
+    setBossState(null);
+    setParrotState(null);
+    setDeathState(null);
+    setSoupState(null);
+    setEndingId(null);
+    setChatMessages([]);
+    clearSession();
+  }, []);
+
   return {
     isConnected,
+    isReconnecting,
     room,
     gameState,
     eventResult,
@@ -221,6 +822,77 @@ export function useSocket() {
     sendChoice,
     revivePlayer,
     clearError,
-    clearEventResult
+    clearEventResult,
+    // 第二关
+    currentLevel,
+    hidingState,
+    hidingAttackResult,
+    levelStory,
+    currentStoryIndex,
+    hidingNextStory,
+    hidingNextPhase,
+    hidingSelectArea,
+    hidingConfirmSelection,
+    clearHidingAttackResult,
+    // 第三幕
+    storyState,
+    storyNextStory,
+    storyNextPhase,
+    storySelectBranch,
+    storyMakeChoice,
+    // BOSS战 - 鼠鼠大王
+    bossState,
+    bossAttackResult,
+    bossNextStory,
+    bossStartBattle,
+    bossSelectFighter,
+    bossAttackHole,
+    bossNextRound,
+    clearBossAttackResult,
+    // BOSS战 - 百变小鹦
+    parrotState,
+    parrotRoundResult,
+    parrotStartBattle,
+    parrotSubmitAnswer,
+    parrotNextRound,
+    clearParrotRoundResult,
+    // BOSS战 - 死神
+    deathState,
+    deathRoundResult,
+    deathStartBattle,
+    deathSetBet,
+    deathSetChoice,
+    deathConfirmBet,
+    deathRoll,
+    deathNextRound,
+    // 结局
+    endingId,
+    // 海龟汤
+    soupState,
+    soupQuestionResult,
+    soupNextStory,
+    soupNextPhase,
+    soupGoBack,
+    soupAskQuestion,
+    soupSubmitDeathCount,
+    soupSubmitIsHuman,
+    soupSubmitIdentity,
+    soupConfirmIdentities,
+    clearSoupQuestionResult,
+    // 调试
+    debugSkipToLevel3,
+    debugSkipToBoss1,
+    debugSkipToBoss2,
+    debugSkipToBoss3,
+    debugSkipToSoup,
+    // 聊天室
+    chatMessages,
+    chatEnabled,
+    chatDisableReason,
+    sendChatMessage,
+    // 帮助功能
+    forceAdvance,
+    returnToLobby,
+    restartGame
   };
 }

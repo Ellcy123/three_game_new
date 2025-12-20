@@ -1,0 +1,112 @@
+{
+  "levelId": "level2",
+  "name": "藏匿",
+  "type": "hiding",
+  "maxRounds": 5,
+  "selectionTime": 15,
+  "openingStory": [
+    "轰隆隆...大门缓缓打开了！",
+    "你们凭借智慧打开了密室大门。",
+    "正当你们准备逃离时...",
+    "一个黑色兜帽男出现在门口。",
+    "他手持一件未知的武器，缓缓走来...",
+    "你们感受到一股强大的压迫感。",
+    "\"藏起来！快！\"",
+    "你们决定先躲避这个神秘人物的追击！"
+  ],
+  "rules": {
+    "title": "藏匿规则",
+    "content": [
+      "黑色兜帽男将进行 5 次攻击！",
+      "每轮你需要选择一个区域藏匿。",
+      "⚔️ 被击中：生命值 -1",
+      "🏆 全程躲过：生命值 +3",
+      "⚠️ 注意：",
+      "• 每个区域最多容纳 2 人",
+      "• 被攻击的区域将被摧毁",
+      "• 你可以看到队友的选择"
+    ]
+  },
+  "areas": [
+    {
+      "id": "pool",
+      "name": "水潭",
+      "capacity": 2,
+      "selectText": "{player}悄悄潜入水潭中...",
+      "attackText": "水花四溅，水潭被搅得一片混乱！"
+    },
+    {
+      "id": "wardrobe",
+      "name": "衣柜",
+      "capacity": 2,
+      "selectText": "{player}轻手轻脚躲进衣柜...",
+      "attackText": "衣柜被劈成两半！"
+    },
+    {
+      "id": "small_room",
+      "name": "小房间",
+      "capacity": 2,
+      "selectText": "{player}溜进小房间藏好...",
+      "attackText": "小房间的墙壁被击穿！"
+    },
+    {
+      "id": "cage",
+      "name": "囚笼",
+      "capacity": 2,
+      "selectText": "{player}钻进囚笼蜷缩起来...",
+      "attackText": "囚笼被砸得扭曲变形！"
+    },
+    {
+      "id": "desk",
+      "name": "电脑桌",
+      "capacity": 2,
+      "selectText": "{player}躲到电脑桌下面...",
+      "attackText": "电脑桌被一击粉碎！"
+    },
+    {
+      "id": "corner",
+      "name": "墙角",
+      "capacity": 2,
+      "selectText": "{player}贴着墙角屏住呼吸...",
+      "attackText": "墙角被削去一大块！"
+    },
+    {
+      "id": "vase",
+      "name": "花瓶",
+      "capacity": 2,
+      "selectText": "{player}躲在花瓶后面（真的藏得住吗？）...",
+      "attackText": "花瓶碎成渣渣！"
+    },
+    {
+      "id": "suitcase",
+      "name": "行李箱",
+      "capacity": 2,
+      "selectText": "{player}钻进行李箱里...",
+      "attackText": "行李箱被劈开了！"
+    }
+  ],
+  "roundTexts": {
+    "1": "兜帽男开始搜索...",
+    "2": "他没有放弃，继续寻找...",
+    "3": "兜帽男变得焦躁起来...",
+    "4": "他的攻击越来越猛烈！",
+    "5": "最后一击！千万不能被发现！"
+  },
+  "attackPreText": "黑色兜帽男举起了武器...",
+  "attackText": "他朝着【{area}】挥出了致命一击！",
+  "hitText": "💥 {player}被击中了！生命值 -1",
+  "missText": "兜帽男扑了个空...",
+  "destroyText": "【{area}】被摧毁了，无法再使用",
+  "perfectDodgeBonus": 3,
+  "endingStory": [
+    "兜帽男停下了攻击...",
+    "他环顾四周，似乎没有找到你们。",
+    "\"......\"",
+    "他喃喃自语道：",
+    "\"该来的...逃不掉...\"",
+    "随后，他转身消失在黑暗中。",
+    "你们从藏身处走出来，心有余悸。",
+    "听到兜帽男临走时的话语，你们好像想起了什么...",
+    "一阵莫名的记忆涌入你们三人的脑海..."
+  ]
+}

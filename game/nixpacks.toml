@@ -1,11 +1,17 @@
 [phases.setup]
-nixPkgs = ["nodejs-18_x"]
+nixPkgs = ["nodejs-18_x", "npm-9_x"]
 
 [phases.install]
-cmds = ["npm install"]
+cmds = [
+  "cd client && npm install",
+  "cd server && npm install"
+]
 
 [phases.build]
-cmds = ["npm run build"]
+cmds = [
+  "cd client && npm run build",
+  "cd server && npm run build"
+]
 
 [start]
-cmd = "node server/dist/index.js"
+cmd = "cd server && npm start"

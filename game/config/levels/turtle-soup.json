@@ -1,0 +1,230 @@
+{
+  "levelId": "turtle-soup",
+  "name": "海龟汤（记忆回溯）",
+  "freeQuestionsPerPlayer": 6,
+  "openingStory": [
+    "听到兜帽男临走时的话语...",
+    "\"该来的...逃不掉...\"",
+    "你们好像想起了什么。",
+    "一阵莫名的记忆涌入你们三人的脑海..."
+  ],
+  "memoryIntro": [
+    "记忆如潮水般涌来，画面逐渐清晰...",
+    "这是...关于你们的故事？",
+    "还是...别人的故事？",
+    "请仔细回忆，找出真相。"
+  ],
+  "storyText": "我看着窗外【妈妈】忙碌的身影有些失神。这个冬天就是我【25岁生日】了。我好爱妈妈，有些困了。我决定【睡一会】。等我醒来时，我出现在一个【陌生的地方】，我急忙呼喊【爸爸】。走向我的是一个【拿着刀的陌生人】，我想爸爸了...【好疼啊】，再次睁眼爸爸已经在我面前了。爸爸【哭着杀了我】。",
+  "keywords": [
+    {
+      "id": "mama",
+      "text": "妈妈",
+      "belongsTo": "turtle",
+      "questions": [
+        { "id": "A", "text": "\"妈妈\"是我的亲生母亲吗？", "answer": false, "value": 3 },
+        { "id": "B", "text": "\"妈妈\"知道我爱她吗？", "answer": true, "value": 1 },
+        { "id": "C", "text": "\"妈妈\"每天都很忙碌吗？", "answer": true, "value": 1 }
+      ]
+    },
+    {
+      "id": "birthday",
+      "text": "25岁生日",
+      "belongsTo": "turtle",
+      "questions": [
+        { "id": "A", "text": "我真的活了25年吗？", "answer": true, "value": 2 },
+        { "id": "B", "text": "25岁对我来说算长寿吗？", "answer": true, "value": 3 },
+        { "id": "C", "text": "25岁时我身体还健康吗？", "answer": false, "value": 2 }
+      ]
+    },
+    {
+      "id": "sleep",
+      "text": "睡一会",
+      "belongsTo": "turtle",
+      "questions": [
+        { "id": "A", "text": "我真的只是睡着了吗？", "answer": false, "value": 3 },
+        { "id": "B", "text": "睡醒后我还能见到妈妈吗？", "answer": false, "value": 3 },
+        { "id": "C", "text": "我是自愿睡觉的吗？", "answer": true, "value": 2 }
+      ]
+    },
+    {
+      "id": "strange_place",
+      "text": "陌生的地方",
+      "belongsTo": "dog",
+      "questions": [
+        { "id": "A", "text": "这个陌生的地方是我自己来的吗？", "answer": false, "value": 3 },
+        { "id": "B", "text": "这个地方有其他和我一样的存在吗？", "answer": true, "value": 2 },
+        { "id": "C", "text": "这个地方很危险吗？", "answer": true, "value": 2 }
+      ]
+    },
+    {
+      "id": "papa",
+      "text": "爸爸",
+      "belongsTo": "common",
+      "questions": [
+        { "id": "A", "text": "\"爸爸\"是我的亲生父亲吗？", "answer": false, "value": 3 },
+        { "id": "B", "text": "\"爸爸\"爱我吗？", "answer": true, "value": 1 },
+        { "id": "C", "text": "\"爸爸\"和\"妈妈\"是一家人吗？", "answer": true, "value": 1 }
+      ]
+    },
+    {
+      "id": "stranger_knife",
+      "text": "拿着刀的陌生人",
+      "belongsTo": "dog",
+      "questions": [
+        { "id": "A", "text": "这个陌生人是来救我的吗？", "answer": false, "value": 3 },
+        { "id": "B", "text": "这个陌生人认识我的爸爸妈妈吗？", "answer": false, "value": 2 },
+        { "id": "C", "text": "这个陌生人是专门针对我这样的存在吗？", "answer": true, "value": 3 }
+      ]
+    },
+    {
+      "id": "pain",
+      "text": "好疼啊",
+      "belongsTo": "dog",
+      "questions": [
+        { "id": "A", "text": "是那个陌生人让我感到疼痛的吗？", "answer": true, "value": 3 },
+        { "id": "B", "text": "这种疼痛是疾病导致的吗？", "answer": true, "value": 2 },
+        { "id": "C", "text": "疼痛之后我还活着吗？", "answer": true, "value": 3 }
+      ]
+    },
+    {
+      "id": "crying_kill",
+      "text": "哭着杀了我",
+      "belongsTo": "cat",
+      "questions": [
+        { "id": "A", "text": "爸爸是故意杀我的吗？", "answer": true, "value": 3 },
+        { "id": "B", "text": "爸爸杀我是因为恨我吗？", "answer": false, "value": 3 },
+        { "id": "C", "text": "爸爸杀我是为了让我不再痛苦吗？", "answer": true, "value": 3 }
+      ]
+    }
+  ],
+  "finalQuestions": {
+    "deathCount": {
+      "question": "在这段记忆中，有几个角色死亡了？",
+      "options": ["0", "1", "2", "3"],
+      "correctAnswer": "3",
+      "wrongPenalty": 1
+    },
+    "isHuman": {
+      "question": "记忆中的\"我\"，是人类吗？",
+      "options": ["是", "否"],
+      "correctAnswer": "否",
+      "wrongPenalty": 1
+    },
+    "identity": {
+      "question": "你们分别是什么动物？",
+      "correctAnswers": ["cat", "dog", "turtle"],
+      "wrongPenalty": 1
+    }
+  },
+  "animalOptions": [
+    { "id": "cat", "name": "猫", "icon": "🐱" },
+    { "id": "dog", "name": "狗", "icon": "🐕" },
+    { "id": "turtle", "name": "龟", "icon": "🐢" },
+    { "id": "mouse", "name": "鼠", "icon": "🐭" },
+    { "id": "rabbit", "name": "兔", "icon": "🐰" },
+    { "id": "bird", "name": "鸟", "icon": "🐦" },
+    { "id": "fish", "name": "鱼", "icon": "🐟" },
+    { "id": "snake", "name": "蛇", "icon": "🐍" },
+    { "id": "frog", "name": "蛙", "icon": "🐸" },
+    { "id": "pig", "name": "猪", "icon": "🐷" },
+    { "id": "cow", "name": "牛", "icon": "🐮" },
+    { "id": "horse", "name": "马", "icon": "🐴" },
+    { "id": "sheep", "name": "羊", "icon": "🐑" },
+    { "id": "chicken", "name": "鸡", "icon": "🐔" },
+    { "id": "duck", "name": "鸭", "icon": "🦆" },
+    { "id": "goose", "name": "鹅", "icon": "🦢" },
+    { "id": "bear", "name": "熊", "icon": "🐻" },
+    { "id": "fox", "name": "狐", "icon": "🦊" },
+    { "id": "wolf", "name": "狼", "icon": "🐺" },
+    { "id": "lion", "name": "狮", "icon": "🦁" },
+    { "id": "tiger", "name": "虎", "icon": "🐯" },
+    { "id": "elephant", "name": "象", "icon": "🐘" },
+    { "id": "deer", "name": "鹿", "icon": "🦌" },
+    { "id": "monkey", "name": "猴", "icon": "🐒" },
+    { "id": "hedgehog", "name": "刺猬", "icon": "🦔" },
+    { "id": "squirrel", "name": "松鼠", "icon": "🐿" },
+    { "id": "parrot", "name": "鹦鹉", "icon": "🦜" },
+    { "id": "owl", "name": "猫头鹰", "icon": "🦉" },
+    { "id": "eagle", "name": "鹰", "icon": "🦅" },
+    { "id": "crocodile", "name": "鳄鱼", "icon": "🐊" },
+    { "id": "penguin", "name": "企鹅", "icon": "🐧" },
+    { "id": "bee", "name": "蜜蜂", "icon": "🐝" },
+    { "id": "butterfly", "name": "蝴蝶", "icon": "🦋" },
+    { "id": "snail", "name": "蜗牛", "icon": "🐌" },
+    { "id": "octopus", "name": "章鱼", "icon": "🐙" },
+    { "id": "hamster", "name": "仓鼠", "icon": "🐹" }
+  ],
+  "revelation": {
+    "title": "【汤底揭晓】",
+    "subtitle": "这不是一个人的故事...\n而是三只宠物的最后记忆。",
+    "stories": [
+      {
+        "character": "turtle",
+        "title": "🐢 乌龟的故事",
+        "highlight": "\"我看着窗外妈妈忙碌的身影...25岁生日...睡一会...\"",
+        "content": [
+          "我是一只陪伴主人25年的老乌龟。",
+          "那天，我趴在窗边晒太阳，看着女主人忙碌的身影。",
+          "我感到前所未有的疲惫。",
+          "25年了，我的生命走到了尽头。",
+          "\"好困啊，睡一会吧...\"",
+          "我闭上眼睛，安详地离开了这个世界。"
+        ],
+        "deathCause": "【死因：年老体衰，自然死亡】"
+      },
+      {
+        "character": "dog",
+        "title": "🐕 狗狗的故事",
+        "highlight": "\"陌生的地方...呼喊爸爸...拿着刀的陌生人...好疼啊...\"",
+        "content": [
+          "我是一只调皮的狗狗。",
+          "那天，我趁主人不注意跑了出去，越跑越远...",
+          "等我反应过来，已经迷路了。",
+          "我拼命呼喊爸爸，却等来了一个陌生人。",
+          "他把我带到一个陌生的地方。",
+          "然后，我看到了他手中的刀...",
+          "好疼啊..."
+        ],
+        "deathCause": "【死因：走丢后被狗贩子杀害】"
+      },
+      {
+        "character": "cat",
+        "title": "🐱 猫咪的故事",
+        "highlight": "\"爸爸哭着杀了我...\"",
+        "content": [
+          "我是一只身患重病的猫咪。",
+          "医生说，我的病已经没有办法治愈了。",
+          "每一天，我都在承受着痛苦。",
+          "爸爸抱着我，泪流满面。",
+          "他做出了一个艰难的决定——",
+          "让我不再痛苦地活着。",
+          "\"对不起...对不起...\"",
+          "他哭着送我离开。"
+        ],
+        "deathCause": "【死因：重病后被主人安乐死】"
+      }
+    ],
+    "epilogue": [
+      "三段记忆，三个故事，三种告别。",
+      "乌龟安详地睡去，",
+      "狗狗意外地离开，",
+      "猫咪痛苦地解脱。",
+      "但有一件事是相同的——",
+      "它们都曾被深深地爱过。",
+      "你们想起了自己的身份...",
+      "原来，你们不是人类，",
+      "而是三只已经离开的宠物。",
+      "这个世界，是由主人的思念构成的\"回响\"。",
+      "你们存在于此，是因为有人在想念你们。"
+    ]
+  },
+  "transition": [],
+  "identityReveal": {
+    "title": "身份判定结果",
+    "correctAnswers": {
+      "cat": "猫咪",
+      "dog": "狗狗", 
+      "turtle": "乌龟"
+    }
+  }
+}
