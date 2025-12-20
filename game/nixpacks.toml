@@ -10,8 +10,10 @@ cmds = [
 [phases.build]
 cmds = [
   "cd client && npm run build",
-  "cd server && npm run build"
+  "cd server && npm run build",
+  "ls -la client/dist || echo 'client/dist not found'",
+  "ls -la server/dist || echo 'server/dist not found'"
 ]
 
 [start]
-cmd = "cd server && npm start"
+cmd = "NODE_ENV=production node server/dist/server/src/index.js"
