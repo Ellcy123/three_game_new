@@ -16,6 +16,7 @@ export type ChatTheme = 'dark' | 'light';
 interface ChatRoomProps {
   messages: ChatMessage[];
   playerId: string;
+  roomId?: string; // 房间码
   enabled: boolean;
   disableReason?: string;
   characterRevealed?: boolean; // 角色是否已揭示
@@ -55,6 +56,7 @@ const getCharacterConfig = (theme: ChatTheme) => ({
 export function ChatRoom({
   messages,
   playerId,
+  roomId,
   enabled,
   disableReason,
   characterRevealed = false,
@@ -64,14 +66,12 @@ export function ChatRoom({
   onReturnToLobby,
   debugActions
 }: ChatRoomProps) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
   const [inputValue, setInputValue] = useState('');
-  const [unreadCount, setUnreadCount] = useState(0);
   const [showHelpMenu, setShowHelpMenu] = useState(false);
   const [showSecretMenu, setShowSecretMenu] = useState(false);
   const [secretClickCount, setSecretClickCount] = useState(0);
+  const [copied, setCopied] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const lastMessageCountRef = useRef(messages.length);
 
   // 秘密点击计数器 - 连续点击3次骨头才显示秘密菜单
   const handleSecretClick = () => {
@@ -83,6 +83,26 @@ export function ChatRoom({
     }
     // 2秒后重置计数
     setTimeout(() => setSecretClickCount(0), 2000);
+  };
+
+  // 复制房间码
+  const handleCopyRoomId = async () => {
+    if (!roomId) return;
+    try {
+      await navigator.clipboard.writeText(roomId);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // 降级方案
+      const input = document.createElement('input');
+      input.value = roomId;
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand('copy');
+      document.body.removeChild(input);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
   // 根据主题获取角色配置
@@ -159,26 +179,8 @@ export function ChatRoom({
 
   // 自动滚动到底部
   useEffect(() => {
-    if (!isCollapsed) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      setUnreadCount(0);
-    }
-  }, [messages, isCollapsed]);
-
-  // 收起时统计未读消息
-  useEffect(() => {
-    if (isCollapsed && messages.length > lastMessageCountRef.current) {
-      setUnreadCount(prev => prev + (messages.length - lastMessageCountRef.current));
-    }
-    lastMessageCountRef.current = messages.length;
-  }, [messages.length, isCollapsed]);
-
-  // 展开时清除未读
-  useEffect(() => {
-    if (!isCollapsed) {
-      setUnreadCount(0);
-    }
-  }, [isCollapsed]);
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   const handleSend = () => {
     const trimmed = inputValue.trim();
@@ -203,31 +205,7 @@ export function ChatRoom({
     return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
   };
 
-  // 收起状态 - 右侧小条
-  if (isCollapsed) {
-    return (
-      <div 
-        className={`fixed right-0 top-0 h-screen w-12 ${themeStyles.collapsedBg} 
-                   cursor-pointer z-40 flex flex-col items-center justify-center gap-2
-                   shadow-lg ${themeStyles.collapsedBorder} hover:w-14 transition-all duration-200`}
-        onClick={() => setIsCollapsed(false)}
-      >
-        <span className="text-2xl">{themeStyles.collapsedIcon}</span>
-        <span className="text-white text-xs writing-mode-vertical rotate-180" style={{ writingMode: 'vertical-rl' }}>
-          小窝
-        </span>
-        {unreadCount > 0 && (
-          <span className="absolute top-4 right-1 bg-red-500 text-white text-xs w-5 h-5 
-                         rounded-full flex items-center justify-center animate-bounce">
-            {unreadCount > 9 ? '9+' : unreadCount}
-          </span>
-        )}
-        <span className="text-white text-lg mt-2">◀</span>
-      </div>
-    );
-  }
-
-  // 展开状态 - 右侧侧边栏
+  // 展开状态 - 右侧侧边栏（不再支持收起）
   return (
     <div className="fixed right-0 top-0 h-screen w-80 flex flex-col z-40 shadow-2xl">
       {/* 背景装饰 */}
@@ -240,20 +218,28 @@ export function ChatRoom({
       <div className="relative flex flex-col h-full">
         {/* 标题栏 */}
         <div 
-          className={`flex items-center justify-between px-4 py-3 cursor-pointer
+          className={`flex items-center justify-between px-4 py-3
                      ${themeStyles.headerBg} text-white
                      ${themeStyles.headerBorder}`}
-          onClick={() => setIsCollapsed(true)}
         >
           <div className="flex items-center gap-2">
             <span className="text-2xl animate-bounce">{themeStyles.headerIcon}</span>
             <span className="font-bold text-lg">小窝</span>
             <span className="text-xl">{themeStyles.headerDecor}</span>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm opacity-80">收起</span>
-            <span className="text-lg">▶</span>
-          </div>
+          {/* 房间码复制按钮 */}
+          {roomId && (
+            <button
+              onClick={handleCopyRoomId}
+              className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/20 hover:bg-white/30 
+                       transition-colors text-sm"
+              title="点击复制房间码"
+            >
+              <span className="opacity-80">🔗</span>
+              <span className="font-mono text-xs">{roomId.slice(0, 8)}</span>
+              <span className="text-xs">{copied ? '✓' : '📋'}</span>
+            </button>
+          )}
         </div>
 
         {/* 消息列表 */}

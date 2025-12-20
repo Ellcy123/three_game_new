@@ -170,6 +170,7 @@ function App() {
       <WithChat
         chatMessages={chatMessages}
         playerId={playerId}
+        roomId={room?.id}
         chatEnabled={chatEnabled}
         chatDisableReason={chatDisableReason}
         characterRevealed={characterRevealed}
@@ -209,6 +210,7 @@ function App() {
       <WithChat
         chatMessages={chatMessages}
         playerId={playerId}
+        roomId={room?.id}
         chatEnabled={chatEnabled}
         chatDisableReason={chatDisableReason}
         characterRevealed={characterRevealed}
@@ -254,6 +256,7 @@ function App() {
       <WithChat
         chatMessages={chatMessages}
         playerId={playerId}
+        roomId={room?.id}
         chatEnabled={chatEnabled}
         chatDisableReason={chatDisableReason}
         characterRevealed={characterRevealed}
@@ -296,6 +299,7 @@ function App() {
       <WithChat
         chatMessages={chatMessages}
         playerId={playerId}
+        roomId={room?.id}
         chatEnabled={chatEnabled}
         chatDisableReason={chatDisableReason}
         characterRevealed={characterRevealed}
@@ -329,6 +333,7 @@ function App() {
       <WithChat
         chatMessages={chatMessages}
         playerId={playerId}
+        roomId={room?.id}
         chatEnabled={chatEnabled}
         chatDisableReason={chatDisableReason}
         characterRevealed={characterRevealed}
@@ -362,6 +367,7 @@ function App() {
       <WithChat
         chatMessages={chatMessages}
         playerId={playerId}
+        roomId={room?.id}
         chatEnabled={chatEnabled}
         chatDisableReason={chatDisableReason}
         characterRevealed={characterRevealed}
@@ -400,6 +406,7 @@ function App() {
       <WithChat
         chatMessages={chatMessages}
         playerId={playerId}
+        roomId={room.id}
         chatEnabled={chatEnabled}
         chatDisableReason={chatDisableReason}
         characterRevealed={characterRevealed}
@@ -437,6 +444,7 @@ function App() {
       <WithChat
         chatMessages={chatMessages}
         playerId={playerId}
+        roomId={room?.id}
         chatEnabled={chatEnabled}
         chatDisableReason={chatDisableReason}
         characterRevealed={characterRevealed}
@@ -477,6 +485,7 @@ function App() {
       <WithChat
         chatMessages={chatMessages}
         playerId={playerId}
+        roomId={room.id}
         chatEnabled={chatEnabled}
         chatDisableReason={chatDisableReason}
         characterRevealed={characterRevealed}
@@ -530,6 +539,7 @@ function WithChat({
   children,
   chatMessages,
   playerId,
+  roomId,
   chatEnabled,
   chatDisableReason,
   characterRevealed,
@@ -548,6 +558,7 @@ function WithChat({
   children: React.ReactNode;
   chatMessages: any[];
   playerId: string;
+  roomId?: string;
   chatEnabled: boolean;
   chatDisableReason?: string;
   characterRevealed?: boolean;
@@ -575,6 +586,7 @@ function WithChat({
       <ChatRoom
         messages={chatMessages}
         playerId={playerId}
+        roomId={roomId}
         enabled={chatEnabled}
         disableReason={chatDisableReason}
         characterRevealed={characterRevealed}
