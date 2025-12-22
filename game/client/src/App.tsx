@@ -12,6 +12,8 @@ import DeathScreen from './components/DeathScreen';
 import EndingScreen from './components/EndingScreen';
 import { ChatRoom } from './components/ChatRoom';
 import { BGMControl } from './components/BGMControl';
+import ItemSelectionModal from './components/ItemSelectionModal';
+import { CursorOverlay, useCursorTracking } from './components/CursorOverlay';
 
 function App() {
   const {
@@ -64,11 +66,13 @@ function App() {
     parrotNextRound,
     // BOSS战 - 死神
     deathState,
+    diceSelectionNeeded,
     deathStartBattle,
     deathSetBet,
     deathSetChoice,
     deathConfirmBet,
     deathRoll,
+    deathSetCustomDice,
     deathNextRound,
     // 结局
     endingId,
@@ -95,11 +99,22 @@ function App() {
     chatEnabled,
     chatDisableReason,
     sendChatMessage,
+    // 光标同步
+    remoteCursors,
+    cursorEnabled,
+    sendCursorPosition,
     // 帮助功能
     forceAdvance,
     returnToLobby,
-    restartGame
+    restartGame,
+    // 道具选择
+    itemSelectionData,
+    itemSelect,
+    itemSkip
   } = useSocket();
+
+  // 光标追踪 - 发送自己的鼠标位置
+  useCursorTracking(sendCursorPosition, cursorEnabled && !!room);
 
   // 确定当前 BGM 关卡
   // 如果没有进入房间，使用 lobby；如果在等待房间，使用 waiting；否则使用 currentLevel
@@ -120,6 +135,31 @@ function App() {
 
   // 判断是否是房主
   const isHost = room?.players?.find(p => p.id === playerId)?.isHost ?? false;
+
+  // 道具选择模态框（全局显示，优先级最高）
+  const renderItemSelectionModal = () => {
+    if (!itemSelectionData) return null;
+    return (
+      <ItemSelectionModal
+        data={itemSelectionData}
+        onSelect={(optionId) => itemSelect(itemSelectionData.itemId, optionId)}
+        onSkip={() => itemSkip(itemSelectionData.itemId)}
+        canSkip={itemSelectionData.selectionType !== 'time_machine'} // 时光机必须选择
+      />
+    );
+  };
+
+  // 渲染光标覆盖层（只在房间内显示）
+  const renderCursorOverlay = () => {
+    if (!playerId || !room) return null;
+    return (
+      <CursorOverlay
+        playerId={playerId}
+        remoteCursors={remoteCursors}
+        enabled={cursorEnabled}
+      />
+    );
+  };
 
   // 显示错误提示
   if (error) {
@@ -167,29 +207,33 @@ function App() {
   // 结局画面
   if (currentLevel === 'ending' && endingId && playerId) {
     return (
-      <WithChat
-        chatMessages={chatMessages}
-        playerId={playerId}
-        roomId={room?.id}
-        chatEnabled={chatEnabled}
-        chatDisableReason={chatDisableReason}
-        characterRevealed={characterRevealed}
-        sendChatMessage={sendChatMessage}
-        onForceAdvance={forceAdvance}
-        onReturnToLobby={returnToLobby}
-        bgmPlaying={bgmPlaying}
-        bgmMuted={bgmMuted}
-        bgmVolume={bgmVolume}
-        onToggleBgmMute={toggleBgmMute}
-        onToggleBgmPlay={toggleBgmPlay}
-        onChangeBgmVolume={changeBgmVolume}
-      >
-        <EndingScreen
-          endingId={endingId}
-          onRestart={restartGame}
-          onMainMenu={returnToLobby}
-        />
-      </WithChat>
+      <>
+        {renderCursorOverlay()}
+        {renderItemSelectionModal()}
+        <WithChat
+          chatMessages={chatMessages}
+          playerId={playerId}
+          roomId={room?.id}
+          chatEnabled={chatEnabled}
+          chatDisableReason={chatDisableReason}
+          characterRevealed={characterRevealed}
+          sendChatMessage={sendChatMessage}
+          onForceAdvance={forceAdvance}
+          onReturnToLobby={returnToLobby}
+          bgmPlaying={bgmPlaying}
+          bgmMuted={bgmMuted}
+          bgmVolume={bgmVolume}
+          onToggleBgmMute={toggleBgmMute}
+          onToggleBgmPlay={toggleBgmPlay}
+          onChangeBgmVolume={changeBgmVolume}
+        >
+          <EndingScreen
+            endingId={endingId}
+            onRestart={restartGame}
+            onMainMenu={returnToLobby}
+          />
+        </WithChat>
+      </>
     );
   }
 
@@ -207,35 +251,41 @@ function App() {
       );
     }
     return (
-      <WithChat
-        chatMessages={chatMessages}
-        playerId={playerId}
-        roomId={room?.id}
-        chatEnabled={chatEnabled}
-        chatDisableReason={chatDisableReason}
-        characterRevealed={characterRevealed}
-        chatTheme="light"
-        sendChatMessage={sendChatMessage}
-        onForceAdvance={forceAdvance}
-        onReturnToLobby={returnToLobby}
-        bgmPlaying={bgmPlaying}
-        bgmMuted={bgmMuted}
-        bgmVolume={bgmVolume}
-        onToggleBgmMute={toggleBgmMute}
-        onToggleBgmPlay={toggleBgmPlay}
-        onChangeBgmVolume={changeBgmVolume}
-      >
-        <DeathScreen
+      <>
+        {renderCursorOverlay()}
+        {renderItemSelectionModal()}
+        <WithChat
+          chatMessages={chatMessages}
           playerId={playerId}
-          state={deathState}
-          onStartBattle={deathStartBattle}
-          onSetBet={deathSetBet}
-          onSetChoice={deathSetChoice}
-          onConfirmBet={deathConfirmBet}
-          onRoll={deathRoll}
-          onNextRound={deathNextRound}
-        />
-      </WithChat>
+          roomId={room?.id}
+          chatEnabled={chatEnabled}
+          chatDisableReason={chatDisableReason}
+          characterRevealed={characterRevealed}
+          chatTheme="light"
+          sendChatMessage={sendChatMessage}
+          onForceAdvance={forceAdvance}
+          onReturnToLobby={returnToLobby}
+          bgmPlaying={bgmPlaying}
+          bgmMuted={bgmMuted}
+          bgmVolume={bgmVolume}
+          onToggleBgmMute={toggleBgmMute}
+          onToggleBgmPlay={toggleBgmPlay}
+          onChangeBgmVolume={changeBgmVolume}
+        >
+          <DeathScreen
+            playerId={playerId}
+            state={deathState}
+            onStartBattle={deathStartBattle}
+            onSetBet={deathSetBet}
+            onSetChoice={deathSetChoice}
+            onConfirmBet={deathConfirmBet}
+            onRoll={deathRoll}
+            onNextRound={deathNextRound}
+            onSetCustomDice={deathSetCustomDice}
+            diceSelectionNeeded={diceSelectionNeeded}
+          />
+        </WithChat>
+      </>
     );
   }
 
@@ -253,32 +303,36 @@ function App() {
       );
     }
     return (
-      <WithChat
-        chatMessages={chatMessages}
-        playerId={playerId}
-        roomId={room?.id}
-        chatEnabled={chatEnabled}
-        chatDisableReason={chatDisableReason}
-        characterRevealed={characterRevealed}
-        chatTheme="light"
-        sendChatMessage={sendChatMessage}
-        onForceAdvance={forceAdvance}
-        onReturnToLobby={returnToLobby}
-        bgmPlaying={bgmPlaying}
-        bgmMuted={bgmMuted}
-        bgmVolume={bgmVolume}
-        onToggleBgmMute={toggleBgmMute}
-        onToggleBgmPlay={toggleBgmPlay}
-        onChangeBgmVolume={changeBgmVolume}
-      >
-        <ParrotScreen
+      <>
+        {renderCursorOverlay()}
+        {renderItemSelectionModal()}
+        <WithChat
+          chatMessages={chatMessages}
           playerId={playerId}
-          state={parrotState}
-          onStartBattle={parrotStartBattle}
-          onSubmitAnswer={parrotSubmitAnswer}
-          onNextRound={parrotNextRound}
-        />
-      </WithChat>
+          roomId={room?.id}
+          chatEnabled={chatEnabled}
+          chatDisableReason={chatDisableReason}
+          characterRevealed={characterRevealed}
+          chatTheme="light"
+          sendChatMessage={sendChatMessage}
+          onForceAdvance={forceAdvance}
+          onReturnToLobby={returnToLobby}
+          bgmPlaying={bgmPlaying}
+          bgmMuted={bgmMuted}
+          bgmVolume={bgmVolume}
+          onToggleBgmMute={toggleBgmMute}
+          onToggleBgmPlay={toggleBgmPlay}
+          onChangeBgmVolume={changeBgmVolume}
+        >
+          <ParrotScreen
+            playerId={playerId}
+            state={parrotState}
+            onStartBattle={parrotStartBattle}
+            onSubmitAnswer={parrotSubmitAnswer}
+            onNextRound={parrotNextRound}
+          />
+        </WithChat>
+      </>
     );
   }
 
@@ -296,45 +350,51 @@ function App() {
       );
     }
     return (
-      <WithChat
-        chatMessages={chatMessages}
-        playerId={playerId}
-        roomId={room?.id}
-        chatEnabled={chatEnabled}
-        chatDisableReason={chatDisableReason}
-        characterRevealed={characterRevealed}
-        chatTheme="light"
-        sendChatMessage={sendChatMessage}
-        onForceAdvance={forceAdvance}
-        onReturnToLobby={returnToLobby}
-        bgmPlaying={bgmPlaying}
-        bgmMuted={bgmMuted}
-        bgmVolume={bgmVolume}
-        onToggleBgmMute={toggleBgmMute}
-        onToggleBgmPlay={toggleBgmPlay}
-        onChangeBgmVolume={changeBgmVolume}
-      >
-        <MouseKingScreen
+      <>
+        {renderCursorOverlay()}
+        {renderItemSelectionModal()}
+        <WithChat
+          chatMessages={chatMessages}
           playerId={playerId}
-          state={bossState}
-          onSelectFighter={bossSelectFighter}
-          onAttackHole={bossAttackHole}
-          onNextRound={bossNextRound}
-          onStartBattle={bossStartBattle}
-          lastResult={bossAttackResult}
-        />
-      </WithChat>
+          roomId={room?.id}
+          chatEnabled={chatEnabled}
+          chatDisableReason={chatDisableReason}
+          characterRevealed={characterRevealed}
+          chatTheme="light"
+          sendChatMessage={sendChatMessage}
+          onForceAdvance={forceAdvance}
+          onReturnToLobby={returnToLobby}
+          bgmPlaying={bgmPlaying}
+          bgmMuted={bgmMuted}
+          bgmVolume={bgmVolume}
+          onToggleBgmMute={toggleBgmMute}
+          onToggleBgmPlay={toggleBgmPlay}
+          onChangeBgmVolume={changeBgmVolume}
+        >
+          <MouseKingScreen
+            playerId={playerId}
+            state={bossState}
+            onSelectFighter={bossSelectFighter}
+            onAttackHole={bossAttackHole}
+            onNextRound={bossNextRound}
+            onStartBattle={bossStartBattle}
+            lastResult={bossAttackResult}
+          />
+        </WithChat>
+      </>
     );
   }
 
   // 第三幕 - 个人剧情
   if (currentLevel === 'level3' && storyState && playerId && gameState) {
     return (
-      <WithChat
-        chatMessages={chatMessages}
-        playerId={playerId}
-        roomId={room?.id}
-        chatEnabled={chatEnabled}
+      <>
+        {renderCursorOverlay()}
+        <WithChat
+          chatMessages={chatMessages}
+          playerId={playerId}
+          roomId={room?.id}
+          chatEnabled={chatEnabled}
         chatDisableReason={chatDisableReason}
         characterRevealed={characterRevealed}
         chatTheme="light"
@@ -358,16 +418,19 @@ function App() {
           onNextPhase={storyNextPhase}
         />
       </WithChat>
+      </>
     );
   }
 
   // 海龟汤关卡
   if (currentLevel === 'turtle-soup' && soupState && playerId) {
     return (
-      <WithChat
-        chatMessages={chatMessages}
-        playerId={playerId}
-        roomId={room?.id}
+      <>
+        {renderCursorOverlay()}
+        <WithChat
+          chatMessages={chatMessages}
+          playerId={playerId}
+          roomId={room?.id}
         chatEnabled={chatEnabled}
         chatDisableReason={chatDisableReason}
         characterRevealed={characterRevealed}
@@ -397,24 +460,27 @@ function App() {
           onConfirmIdentities={soupConfirmIdentities}
         />
       </WithChat>
+      </>
     );
   }
 
   // 第二关 - 藏匿
   if (currentLevel === 'level2' && hidingState && playerId && room) {
     return (
-      <WithChat
-        chatMessages={chatMessages}
-        playerId={playerId}
-        roomId={room.id}
-        chatEnabled={chatEnabled}
-        chatDisableReason={chatDisableReason}
-        characterRevealed={characterRevealed}
-        sendChatMessage={sendChatMessage}
-        onForceAdvance={forceAdvance}
-        onReturnToLobby={returnToLobby}
-        bgmPlaying={bgmPlaying}
-        bgmMuted={bgmMuted}
+      <>
+        {renderCursorOverlay()}
+        <WithChat
+          chatMessages={chatMessages}
+          playerId={playerId}
+          roomId={room.id}
+          chatEnabled={chatEnabled}
+          chatDisableReason={chatDisableReason}
+          characterRevealed={characterRevealed}
+          sendChatMessage={sendChatMessage}
+          onForceAdvance={forceAdvance}
+          onReturnToLobby={returnToLobby}
+          bgmPlaying={bgmPlaying}
+          bgmMuted={bgmMuted}
         bgmVolume={bgmVolume}
         onToggleBgmMute={toggleBgmMute}
         onToggleBgmPlay={toggleBgmPlay}
@@ -435,33 +501,36 @@ function App() {
           onNextPhase={hidingNextPhase}
         />
       </WithChat>
+      </>
     );
   }
 
   // 第一关 - 密室
   if (gameState && playerId) {
     return (
-      <WithChat
-        chatMessages={chatMessages}
-        playerId={playerId}
-        roomId={room?.id}
-        chatEnabled={chatEnabled}
-        chatDisableReason={chatDisableReason}
-        characterRevealed={characterRevealed}
-        sendChatMessage={sendChatMessage}
-        onForceAdvance={forceAdvance}
-        onReturnToLobby={returnToLobby}
-        bgmPlaying={bgmPlaying}
-        bgmMuted={bgmMuted}
-        bgmVolume={bgmVolume}
-        onToggleBgmMute={toggleBgmMute}
-        onToggleBgmPlay={toggleBgmPlay}
-        onChangeBgmVolume={changeBgmVolume}
-        debugActions={{
-          skipToBoss1: debugSkipToBoss1,
-          skipToBoss2: debugSkipToBoss2,
-          skipToBoss3: debugSkipToBoss3,
-          skipToSoup: debugSkipToSoup,
+      <>
+        {renderCursorOverlay()}
+        <WithChat
+          chatMessages={chatMessages}
+          playerId={playerId}
+          roomId={room?.id}
+          chatEnabled={chatEnabled}
+          chatDisableReason={chatDisableReason}
+          characterRevealed={characterRevealed}
+          sendChatMessage={sendChatMessage}
+          onForceAdvance={forceAdvance}
+          onReturnToLobby={returnToLobby}
+          bgmPlaying={bgmPlaying}
+          bgmMuted={bgmMuted}
+          bgmVolume={bgmVolume}
+          onToggleBgmMute={toggleBgmMute}
+          onToggleBgmPlay={toggleBgmPlay}
+          onChangeBgmVolume={changeBgmVolume}
+          debugActions={{
+            skipToBoss1: debugSkipToBoss1,
+            skipToBoss2: debugSkipToBoss2,
+            skipToBoss3: debugSkipToBoss3,
+            skipToSoup: debugSkipToSoup,
           skipToLevel3: debugSkipToLevel3
         }}
       >
@@ -476,45 +545,49 @@ function App() {
           onClearResult={clearEventResult}
         />
       </WithChat>
+      </>
     );
   }
 
   // 等待房间
   if (room && playerId) {
     return (
-      <WithChat
-        chatMessages={chatMessages}
-        playerId={playerId}
-        roomId={room.id}
-        chatEnabled={chatEnabled}
-        chatDisableReason={chatDisableReason}
-        characterRevealed={characterRevealed}
-        sendChatMessage={sendChatMessage}
-        onForceAdvance={forceAdvance}
-        onReturnToLobby={returnToLobby}
-        bgmPlaying={bgmPlaying}
-        bgmMuted={bgmMuted}
-        bgmVolume={bgmVolume}
-        onToggleBgmMute={toggleBgmMute}
-        onToggleBgmPlay={toggleBgmPlay}
-        onChangeBgmVolume={changeBgmVolume}
-        debugActions={{
-          skipToBoss1: debugSkipToBoss1,
-          skipToBoss2: debugSkipToBoss2,
-          skipToBoss3: debugSkipToBoss3,
-          skipToSoup: debugSkipToSoup,
-          skipToLevel3: debugSkipToLevel3
-        }}
-      >
-        <WaitingRoom
-          room={room}
+      <>
+        {renderCursorOverlay()}
+        <WithChat
+          chatMessages={chatMessages}
           playerId={playerId}
+          roomId={room.id}
+          chatEnabled={chatEnabled}
+          chatDisableReason={chatDisableReason}
+          characterRevealed={characterRevealed}
+          sendChatMessage={sendChatMessage}
+          onForceAdvance={forceAdvance}
+          onReturnToLobby={returnToLobby}
+          bgmPlaying={bgmPlaying}
+          bgmMuted={bgmMuted}
+          bgmVolume={bgmVolume}
+          onToggleBgmMute={toggleBgmMute}
+          onToggleBgmPlay={toggleBgmPlay}
+          onChangeBgmVolume={changeBgmVolume}
+          debugActions={{
+            skipToBoss1: debugSkipToBoss1,
+            skipToBoss2: debugSkipToBoss2,
+            skipToBoss3: debugSkipToBoss3,
+            skipToSoup: debugSkipToSoup,
+            skipToLevel3: debugSkipToLevel3
+          }}
+        >
+          <WaitingRoom
+            room={room}
+            playerId={playerId}
           canStart={canStart}
           onReady={setReady}
           onStartGame={startGame}
           onLeave={leaveRoom}
         />
       </WithChat>
+      </>
     );
   }
 

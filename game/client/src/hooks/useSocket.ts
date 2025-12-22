@@ -177,9 +177,13 @@ export function useSocket() {
   // BOSS战状态 - 死神
   const [deathState, setDeathState] = useState<any>(null);
   const [deathRoundResult, setDeathRoundResult] = useState<any>(null);
+  const [diceSelectionNeeded, setDiceSelectionNeeded] = useState<{ needed: boolean; skillName: string; playerId: string } | null>(null);
 
   // 结局状态
   const [endingId, setEndingId] = useState<'ending_0' | 'ending_1' | 'ending_2' | null>(null);
+
+  // 道具选择状态
+  const [itemSelectionData, setItemSelectionData] = useState<any>(null);
 
   // 海龟汤状态
   const [soupState, setSoupState] = useState<any>(null);
@@ -190,6 +194,10 @@ export function useSocket() {
   const [chatEnabled, setChatEnabled] = useState(true);
   const [chatDisableReason, setChatDisableReason] = useState<string | undefined>(undefined);
   const lastSendTimeRef = useRef<number>(0);
+  
+  // 光标同步状态
+  const [remoteCursors, setRemoteCursors] = useState<any[]>([]);
+  const [cursorEnabled, setCursorEnabled] = useState(true);
   
   // 重连状态
   const [isReconnecting, setIsReconnecting] = useState(false);
@@ -257,6 +265,20 @@ export function useSocket() {
       setPlayerId(data.playerId);
       setCurrentLevel(data.currentLevel);
       
+      // 先清理所有状态，再设置当前关卡的状态
+      setHidingState(null);
+      setHidingAttackResult(null);
+      setStoryState(null);
+      setBossState(null);
+      setBossAttackResult(null);
+      setParrotState(null);
+      setParrotRoundResult(null);
+      setDeathState(null);
+      setDeathRoundResult(null);
+      setSoupState(null);
+      setSoupQuestionResult(null);
+      
+      // 设置当前关卡的状态
       if (data.gameState) setGameState(data.gameState);
       if (data.hidingState) setHidingState(data.hidingState);
       if (data.storyState) setStoryState(data.storyState);
@@ -329,6 +351,46 @@ export function useSocket() {
       setCurrentLevel(data.levelId);
       setLevelStory(data.openingStory);
       setCurrentStoryIndex(0);
+      
+      // 清理旧的关卡状态，避免跳转时状态残留
+      if (data.levelId === 'level2') {
+        // 进入第二关，清理第一关状态
+      } else if (data.levelId === 'level3') {
+        // 进入第三幕，清理第二关状态
+        setHidingState(null);
+        setHidingAttackResult(null);
+      } else if (data.levelId === 'boss1') {
+        // 进入BOSS1，清理第三幕状态
+        setStoryState(null);
+        // 清理其他BOSS状态
+        setParrotState(null);
+        setDeathState(null);
+      } else if (data.levelId === 'boss2') {
+        // 进入BOSS2，清理BOSS1状态
+        setBossState(null);
+        setBossAttackResult(null);
+        // 清理其他BOSS状态
+        setDeathState(null);
+      } else if (data.levelId === 'boss3') {
+        // 进入BOSS3，清理BOSS2状态
+        setParrotState(null);
+        setParrotRoundResult(null);
+        // 清理BOSS1状态
+        setBossState(null);
+        setBossAttackResult(null);
+      } else if (data.levelId === 'turtle-soup') {
+        // 进入海龟汤，清理所有BOSS状态
+        setBossState(null);
+        setBossAttackResult(null);
+        setParrotState(null);
+        setParrotRoundResult(null);
+        setDeathState(null);
+        setDeathRoundResult(null);
+      } else if (data.levelId === 'ending') {
+        // 进入结局，清理海龟汤状态
+        setSoupState(null);
+        setSoupQuestionResult(null);
+      }
     });
 
     // 第二关 - 藏匿事件
@@ -442,6 +504,15 @@ export function useSocket() {
       setDeathRoundResult(result);
     });
 
+    socket.on('death:diceSelectionNeeded', (data: { needed: boolean; skillName: string; playerId: string }) => {
+      setDiceSelectionNeeded(data);
+    });
+
+    socket.on('death:customDiceSet', (data: { diceValue: number; message: string }) => {
+      console.log('骰子点数已设定:', data.message);
+      setDiceSelectionNeeded(null);
+    });
+
     socket.on('death:victory', (data: { text: string[] }) => {
       setLevelStory(data.text);
       setCurrentStoryIndex(0);
@@ -457,6 +528,19 @@ export function useSocket() {
     });
 
     socket.on('death:error', (message: string) => {
+      setError(message);
+    });
+
+    // 道具选择事件
+    socket.on('item:selectionNeeded', (data: any) => {
+      setItemSelectionData(data);
+    });
+
+    socket.on('item:selectionComplete', () => {
+      setItemSelectionData(null);
+    });
+
+    socket.on('item:error', (message: string) => {
       setError(message);
     });
 
@@ -525,6 +609,31 @@ export function useSocket() {
 
     socket.on('chat:error', (data: { message: string }) => {
       console.warn('聊天错误:', data.message);
+    });
+
+    // 光标同步事件
+    socket.on('cursor:update', (data: {
+      playerId: string;
+      playerName: string;
+      characterType?: string;
+      characterRevealed: boolean;
+      x: number;
+      y: number;
+    }) => {
+      setRemoteCursors(prev => {
+        const existing = prev.findIndex(c => c.playerId === data.playerId);
+        const newCursor = { ...data, lastUpdate: Date.now() };
+        if (existing >= 0) {
+          const updated = [...prev];
+          updated[existing] = newCursor;
+          return updated;
+        }
+        return [...prev, newCursor];
+      });
+    });
+
+    socket.on('cursor:leave', (leavingPlayerId: string) => {
+      setRemoteCursors(prev => prev.filter(c => c.playerId !== leavingPlayerId));
     });
 
     return () => {
@@ -700,6 +809,10 @@ export function useSocket() {
     socketRef.current?.emit('death:roll');
   }, []);
 
+  const deathSetCustomDice = useCallback((diceValue: number) => {
+    socketRef.current?.emit('death:setCustomDice', diceValue);
+  }, []);
+
   const deathNextRound = useCallback(() => {
     socketRef.current?.emit('death:nextRound');
     setDeathRoundResult(null);
@@ -763,6 +876,30 @@ export function useSocket() {
     lastSendTimeRef.current = now;
     
     socketRef.current?.emit('chat:send', { content });
+  }, []);
+
+  // 光标同步操作
+  const sendCursorPosition = useCallback((x: number, y: number) => {
+    if (!cursorEnabled) return;
+    socketRef.current?.emit('cursor:move', { x, y });
+  }, [cursorEnabled]);
+
+  const toggleCursorSync = useCallback((enabled: boolean) => {
+    setCursorEnabled(enabled);
+    if (!enabled) {
+      // 通知服务器停止发送光标
+      socketRef.current?.emit('cursor:leave');
+    }
+  }, []);
+
+  // 道具选择操作
+  const itemSelect = useCallback((itemId: string, optionId: string) => {
+    socketRef.current?.emit('item:select', itemId, optionId);
+  }, []);
+
+  const itemSkip = useCallback((itemId: string) => {
+    socketRef.current?.emit('item:skip', itemId);
+    setItemSelectionData(null);
   }, []);
 
   // 强制推进游戏（防卡死）
@@ -859,14 +996,20 @@ export function useSocket() {
     // BOSS战 - 死神
     deathState,
     deathRoundResult,
+    diceSelectionNeeded,
     deathStartBattle,
     deathSetBet,
     deathSetChoice,
     deathConfirmBet,
     deathRoll,
+    deathSetCustomDice,
     deathNextRound,
     // 结局
     endingId,
+    // 道具选择
+    itemSelectionData,
+    itemSelect,
+    itemSkip,
     // 海龟汤
     soupState,
     soupQuestionResult,
@@ -890,6 +1033,11 @@ export function useSocket() {
     chatEnabled,
     chatDisableReason,
     sendChatMessage,
+    // 光标同步
+    remoteCursors,
+    cursorEnabled,
+    sendCursorPosition,
+    toggleCursorSync,
     // 帮助功能
     forceAdvance,
     returnToLobby,

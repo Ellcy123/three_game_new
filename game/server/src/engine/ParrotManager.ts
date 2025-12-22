@@ -476,12 +476,13 @@ export class ParrotManager {
       return;
     }
 
-    // 全员阵亡
+    // 全员阵亡 - 进入结局1（疯人院）
+    // 因为已经击败了鼠鼠大王，所以失败后进入疯人院结局
     const allDead = this.state.players.every(p => !p.isAlive);
     if (allDead) {
       this.state.isComplete = true;
       this.state.result = 'lose';
-      this.state.ending = 'ending_1';
+      this.state.ending = 'ending_1'; // 疯人院结局
       this.state.phase = 'defeat';
       return;
     }
@@ -541,6 +542,16 @@ export class ParrotManager {
         items: p.items.map(i => ({ id: i.id, name: i.name, grade: i.grade, effect: i.effect }))
       }))
     };
+  }
+
+  /**
+   * 强制胜利（海龟汤）
+   */
+  forceVictory(): void {
+    if (!this.state) return;
+    this.state.isComplete = true;
+    this.state.result = 'win';
+    this.state.phase = 'victory';
   }
 }
 

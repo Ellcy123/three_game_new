@@ -60,6 +60,8 @@ interface DeathScreenProps {
   onConfirmBet: () => void;
   onRoll: () => void;
   onNextRound: () => void;
+  onSetCustomDice?: (diceValue: number) => void;
+  diceSelectionNeeded?: { needed: boolean; skillName: string; playerId: string } | null;
 }
 
 const DeathScreen: React.FC<DeathScreenProps> = ({
@@ -70,9 +72,12 @@ const DeathScreen: React.FC<DeathScreenProps> = ({
   onSetChoice,
   onConfirmBet,
   onRoll,
-  onNextRound
+  onNextRound,
+  onSetCustomDice,
+  diceSelectionNeeded
 }) => {
   const [betInput, setBetInput] = useState<string>('0');
+  const [selectedDice, setSelectedDice] = useState<number | null>(null);
 
   const getCharacterEmoji = (type: string) => {
     const emojis: Record<string, string> = { cat: '😺', dog: '🐶', turtle: '🐸' };
@@ -437,8 +442,53 @@ const DeathScreen: React.FC<DeathScreenProps> = ({
           </div>
         )}
 
+        {/* 骰子点数选择界面（奥义・疾风骤雨 / 卡尔斯纳米核心·巨型炮台） */}
+        {diceSelectionNeeded?.needed && state.phase === 'rolling' && (
+          <div className={`${cardClass} p-6 mb-4`}>
+            <div className="text-center mb-4">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <span className="text-3xl">⚡</span>
+                <span className="text-xl font-bold text-amber-600">{diceSelectionNeeded.skillName}</span>
+                <span className="text-3xl">⚡</span>
+              </div>
+              <p className="text-gray-600">你可以选择本轮骰子的点数！</p>
+            </div>
+            
+            <div className="flex justify-center gap-3 mb-6">
+              {[1, 2, 3, 4, 5, 6].map((dice) => (
+                <button
+                  key={dice}
+                  onClick={() => setSelectedDice(dice)}
+                  className={`w-16 h-16 text-4xl rounded-2xl border-3 transition-all ${
+                    selectedDice === dice
+                      ? 'bg-gradient-to-r from-amber-400 to-yellow-500 border-amber-600 scale-110 shadow-lg'
+                      : 'bg-white border-violet-200 hover:border-violet-400 hover:scale-105'
+                  }`}
+                >
+                  {getDiceEmoji(dice)}
+                </button>
+              ))}
+            </div>
+            
+            <div className="flex justify-center">
+              <button
+                onClick={() => {
+                  if (selectedDice && onSetCustomDice) {
+                    onSetCustomDice(selectedDice);
+                    setSelectedDice(null);
+                  }
+                }}
+                disabled={!selectedDice}
+                className={`${buttonClass} disabled:opacity-50`}
+              >
+                ✅ 确认选择 {selectedDice ? getDiceEmoji(selectedDice) : ''}
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* 投掷阶段 */}
-        {state.phase === 'rolling' && (
+        {state.phase === 'rolling' && !diceSelectionNeeded?.needed && (
           <div className={`${cardClass} p-6 mb-4 text-center`}>
             {!config.noBet && (
               <p className="text-xl mb-4 text-gray-700">

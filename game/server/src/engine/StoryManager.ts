@@ -4,18 +4,21 @@
  */
 
 export interface StoryReward {
-  type: 'skill' | 'item' | 'none';
+  type: 'skill' | 'item' | 'form' | 'none';
   id?: string;
   name: string;
   grade: string;
   effect: string;
   healthBonus?: number;
+  specialEffect?: string; // 'maxHealth1' 等特殊效果
+  used?: boolean; // 道具/技能是否已使用
 }
 
 export interface StoryOption {
   text: string;
   story: string[];
-  reward: StoryReward;
+  reward?: StoryReward;
+  rewards?: StoryReward[]; // 支持多奖励
 }
 
 export interface StoryChoice {
@@ -33,6 +36,8 @@ export interface PlayerStoryState {
   choices: string[]; // 选择记录 ['A', 'B', 'C']
   skills: StoryReward[];
   items: StoryReward[];
+  forms: StoryReward[]; // 形态记录（变形金刚用）
+  transformerForm: string | null; // 'truck' | 'car' | 'cannon'
   completed: boolean;
 }
 
@@ -62,6 +67,8 @@ export class StoryManager {
       choices: [],
       skills: [],
       items: [],
+      forms: [],
+      transformerForm: null,
       completed: false
     }));
 
@@ -174,14 +181,35 @@ export class StoryManager {
     this.state.selectedOption = option;
     player.choices.push(option);
 
-    // 记录奖励
-    if (selectedOption.reward.type === 'skill') {
-      player.skills.push(selectedOption.reward);
-    } else if (selectedOption.reward.type === 'item') {
-      player.items.push(selectedOption.reward);
+    // 处理多奖励（rewards数组）
+    if (selectedOption.rewards && selectedOption.rewards.length > 0) {
+      for (const reward of selectedOption.rewards) {
+        this.applyReward(player, reward);
+      }
+    }
+    // 处理单奖励（向后兼容）
+    else if (selectedOption.reward) {
+      this.applyReward(player, selectedOption.reward);
     }
 
     return selectedOption;
+  }
+
+  /**
+   * 应用单个奖励
+   */
+  private applyReward(player: PlayerStoryState, reward: StoryReward): void {
+    if (reward.type === 'skill') {
+      player.skills.push(reward);
+    } else if (reward.type === 'item') {
+      player.items.push(reward);
+    } else if (reward.type === 'form') {
+      player.forms.push(reward);
+      // 记录变形金刚形态
+      if (reward.id === 'truck' || reward.id === 'car' || reward.id === 'cannon') {
+        player.transformerForm = reward.id;
+      }
+    }
   }
 
   /**
@@ -229,11 +257,16 @@ export class StoryManager {
   /**
    * 获取玩家获得的所有奖励
    */
-  getPlayerRewards(playerId: string): { skills: StoryReward[]; items: StoryReward[] } | null {
+  getPlayerRewards(playerId: string): { skills: StoryReward[]; items: StoryReward[]; forms: StoryReward[]; transformerForm: string | null } | null {
     if (!this.state) return null;
     const player = this.state.playerStates.find(p => p.playerId === playerId);
     if (!player) return null;
-    return { skills: player.skills, items: player.items };
+    return { 
+      skills: player.skills, 
+      items: player.items,
+      forms: player.forms,
+      transformerForm: player.transformerForm
+    };
   }
 
   /**
@@ -251,7 +284,38 @@ export class StoryManager {
     for (const item of player.items) {
       if (item.healthBonus) bonus += item.healthBonus;
     }
+    for (const form of player.forms) {
+      if (form.healthBonus) bonus += form.healthBonus;
+    }
     return bonus;
+  }
+
+  /**
+   * 获取玩家的变形金刚形态
+   */
+  getTransformerForm(playerId: string): string | null {
+    if (!this.state) return null;
+    const player = this.state.playerStates.find(p => p.playerId === playerId);
+    return player?.transformerForm || null;
+  }
+
+  /**
+   * 检查玩家是否有特殊效果
+   */
+  hasSpecialEffect(playerId: string, effectId: string): boolean {
+    if (!this.state) return false;
+    const player = this.state.playerStates.find(p => p.playerId === playerId);
+    if (!player) return false;
+    
+    // 检查形态的特殊效果
+    for (const form of player.forms) {
+      if (form.specialEffect === effectId) return true;
+    }
+    // 检查技能的特殊效果
+    for (const skill of player.skills) {
+      if (skill.specialEffect === effectId) return true;
+    }
+    return false;
   }
 
   /**

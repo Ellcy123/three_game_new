@@ -2,18 +2,20 @@ import React from 'react';
 import TeamStatusPanel, { TeamPlayerState } from './TeamStatusPanel';
 
 interface StoryReward {
-  type: 'skill' | 'item' | 'none';
+  type: 'skill' | 'item' | 'form' | 'none';
   id?: string;
   name: string;
   grade: string;
   effect: string;
   healthBonus?: number;
+  specialEffect?: string;
 }
 
 interface StoryOption {
   text: string;
   story: string[];
-  reward: StoryReward;
+  reward?: StoryReward;
+  rewards?: StoryReward[]; // 支持多奖励
 }
 
 interface StoryChoice {
@@ -31,6 +33,8 @@ interface PlayerStoryState {
   choices: string[];
   skills: StoryReward[];
   items: StoryReward[];
+  forms: StoryReward[];
+  transformerForm: string | null;
   completed: boolean;
 }
 
@@ -387,7 +391,9 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
   // 选择结果
   if (storyState.phase === 'choice_result' && storyState.currentChoice && storyState.selectedOption) {
     const option = storyState.currentChoice.options[storyState.selectedOption];
-    const reward = option.reward;
+    // 支持多奖励和单奖励
+    const rewards = option.rewards || (option.reward ? [option.reward] : []);
+    
     return (
       <div className={`${containerClass} flex flex-col items-center justify-center p-4`}>
         <div className="fixed top-6 left-8 text-4xl animate-bounce">🎉</div>
@@ -409,21 +415,29 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
             ))}
           </div>
           
-          {reward.type !== 'none' && (
-            <div className="bg-gradient-to-r from-yellow-100 to-amber-100 rounded-2xl p-5 mb-6 border-3 border-yellow-400 shadow-lg animate-pulse">
-              <div className="text-center">
-                <div className="flex items-center justify-center gap-2 mb-2">
-                  <span className="text-3xl">✨</span>
-                  <span className={`text-xl font-bold ${getGradeColor(reward.grade)}`}>
-                    领悟 {reward.grade}级{reward.type === 'skill' ? '技能' : '道具'}：【{reward.name}】
-                  </span>
-                  <span className="text-3xl">✨</span>
+          {rewards.length > 0 && rewards.some(r => r.type !== 'none') && (
+            <div className="space-y-3 mb-6">
+              {rewards.filter(r => r.type !== 'none').map((reward, idx) => (
+                <div key={idx} className="bg-gradient-to-r from-yellow-100 to-amber-100 rounded-2xl p-5 border-3 border-yellow-400 shadow-lg animate-pulse">
+                  <div className="text-center">
+                    <div className="flex items-center justify-center gap-2 mb-2">
+                      <span className="text-3xl">✨</span>
+                      <span className={`text-xl font-bold ${getGradeColor(reward.grade)}`}>
+                        {reward.type === 'form' ? '获得' : '领悟'} {reward.grade}级
+                        {reward.type === 'skill' ? '技能' : reward.type === 'item' ? '道具' : '形态'}：【{reward.name}】
+                      </span>
+                      <span className="text-3xl">✨</span>
+                    </div>
+                    <p className="text-gray-600 mt-2">效果：{reward.effect}</p>
+                    {reward.healthBonus && (
+                      <p className="text-green-600 mt-1 font-bold">❤️ 生命值 +{reward.healthBonus}</p>
+                    )}
+                    {reward.specialEffect === 'maxHealth1' && (
+                      <p className="text-rose-500 mt-1 font-bold">⚠️ 生命值上限固定为1（最终关卡解除）</p>
+                    )}
+                  </div>
                 </div>
-                <p className="text-gray-600 mt-2">效果：{reward.effect}</p>
-                {reward.healthBonus && (
-                  <p className="text-green-600 mt-1 font-bold">❤️ 生命值 +{reward.healthBonus}</p>
-                )}
-              </div>
+              ))}
             </div>
           )}
           
@@ -517,6 +531,15 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
                   {playerName} 获得的能力：
                 </h3>
                 
+                {currentPlayerState.forms && currentPlayerState.forms.length > 0 && (
+                  <div className="mb-3">
+                    <span className="text-gray-500 mr-2">🤖 形态：</span>
+                    {currentPlayerState.forms.map((f, i) => (
+                      <span key={i} className={`ml-2 font-bold ${getGradeColor(f.grade)}`}>【{f.name}】</span>
+                    ))}
+                  </div>
+                )}
+                
                 {currentPlayerState.skills.length > 0 && (
                   <div className="mb-3">
                     <span className="text-gray-500 mr-2">🎯 技能：</span>
@@ -535,7 +558,7 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
                   </div>
                 )}
                 
-                {currentPlayerState.skills.length === 0 && currentPlayerState.items.length === 0 && (
+                {currentPlayerState.skills.length === 0 && currentPlayerState.items.length === 0 && (!currentPlayerState.forms || currentPlayerState.forms.length === 0) && (
                   <p className="text-gray-400 italic">暂无获得技能或道具</p>
                 )}
               </div>

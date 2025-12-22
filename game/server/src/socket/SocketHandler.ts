@@ -125,6 +125,7 @@ export class SocketHandler {
       socket.on('death:setChoice', (choice: string) => this.handleDeathSetChoice(socket, choice));
       socket.on('death:confirmBet', () => this.handleDeathConfirmBet(socket));
       socket.on('death:roll', () => this.handleDeathRoll(socket));
+      socket.on('death:setCustomDice', (diceValue: number) => this.handleDeathSetCustomDice(socket, diceValue));
       socket.on('death:nextRound', () => this.handleDeathNextRound(socket));
 
       // 海龟汤事件
@@ -148,6 +149,14 @@ export class SocketHandler {
 
       // 聊天室事件
       socket.on('chat:send', (data: { content: string }) => this.handleChatSend(socket, data.content));
+
+      // 光标同步事件
+      socket.on('cursor:move', (data: { x: number; y: number }) => this.handleCursorMove(socket, data.x, data.y));
+      socket.on('cursor:leave', () => this.handleCursorLeave(socket));
+
+      // 道具选择事件
+      socket.on('item:select', (itemId: string, optionId: string) => this.handleItemSelect(socket, itemId, optionId));
+      socket.on('item:skip', (itemId: string) => this.handleItemSkip(socket, itemId));
 
       // 重连事件
       socket.on('room:reconnect', (playerId: string, roomId: string) => this.handleReconnect(socket, playerId, roomId));
@@ -1187,6 +1196,11 @@ export class SocketHandler {
           this.io.to(room.id).emit('story:stateUpdate', storyManager.serializeState());
           // 延迟进入BOSS战，让玩家看到最后的总结
           setTimeout(() => {
+            // 检查是否有任意门道具需要选择
+            if (this.checkItemSelection(room.id, 'boss1')) {
+              // 等待玩家选择后再进入BOSS战
+              return;
+            }
             this.initializeBoss1(room.id, state);
           }, 1000);
           return;
@@ -1355,6 +1369,11 @@ export class SocketHandler {
    * 初始化鼠鼠大王BOSS战
    */
   private initializeBoss1(roomId: string, state: any): void {
+    // 清理旧的 Manager（如果存在）
+    this.mouseKingManagers.delete(roomId);
+    this.parrotManagers.delete(roomId);
+    this.deathManagers.delete(roomId);
+    
     const mouseKingManager = new MouseKingManager();
     
     // 从 StoryManager 获取玩家技能信息
@@ -1365,7 +1384,9 @@ export class SocketHandler {
         playerId: p.id,
         characterType: p.characterType,
         skills: storyPlayer?.skills || [],
-        items: storyPlayer?.items || []
+        items: storyPlayer?.items || [],
+        forms: storyPlayer?.forms || [],
+        transformerForm: storyPlayer?.transformerForm || null
       };
     });
 
@@ -1511,6 +1532,11 @@ export class SocketHandler {
         });
         // 胜利后进入下一关（百变小鹦）
         setTimeout(() => {
+          // 检查是否有放大缩小灯道具需要选择
+          if (this.checkItemSelection(room.id, 'boss2')) {
+            // 等待玩家选择后再进入BOSS战
+            return;
+          }
           this.initializeBoss2(room.id, state);
         }, 3000);
       } else {
@@ -1572,6 +1598,11 @@ export class SocketHandler {
    * 初始化百变小鹦BOSS战
    */
   private initializeBoss2(roomId: string, state: any): void {
+    // 清理旧的 Manager（如果存在）
+    this.mouseKingManagers.delete(roomId);
+    this.parrotManagers.delete(roomId);
+    this.deathManagers.delete(roomId);
+    
     const parrotManager = new ParrotManager();
     
     const storyManager = this.storyManagers.get(roomId);
@@ -1581,12 +1612,34 @@ export class SocketHandler {
         playerId: p.id,
         characterType: p.characterType,
         skills: storyPlayer?.skills || [],
-        items: storyPlayer?.items || []
+        items: storyPlayer?.items || [],
+        forms: storyPlayer?.forms || [],
+        transformerForm: storyPlayer?.transformerForm || null
       };
     });
 
     const parrotState = parrotManager.initialize(playerInfos, (boss2ParrotConfig as any).questions);
     this.parrotManagers.set(roomId, parrotManager);
+
+    // 应用放大缩小灯效果（如果有）
+    const sizeLightEffect = (storyManager as any)?.sizeLightEffect;
+    if (sizeLightEffect) {
+      const bossState = parrotManager.getState();
+      if (bossState) {
+        if (sizeLightEffect === 'enlarge_player') {
+          // 放大：全体玩家生命值+10
+          bossState.players.forEach(p => {
+            p.health = Math.min(p.health + 10, p.maxHealth + 10);
+            p.maxHealth += 10;
+          });
+        } else if (sizeLightEffect === 'shrink_boss') {
+          // 缩小：BOSS生命值-50%
+          bossState.bossHealth = Math.floor(bossState.bossHealth * 0.5);
+        }
+      }
+      // 清除效果标记
+      delete (storyManager as any).sizeLightEffect;
+    }
 
     // 检查是否跳过战斗
     const skipCheck = parrotManager.checkSkipBattle();
@@ -1685,6 +1738,11 @@ export class SocketHandler {
             this.initializeBoss3(room.id, state);
           }, 3000);
         } else {
+          // 失败 -> 检查是否有时光机
+          if (this.checkTimeMachine(room.id)) {
+            // 等待玩家选择是否使用时光机
+            return;
+          }
           // 失败 -> 结局1：疯人院
           this.io.to(room.id).emit('parrot:defeat', {
             text: (boss2ParrotConfig as any).defeatText,
@@ -1742,6 +1800,11 @@ export class SocketHandler {
    * 初始化死神BOSS战
    */
   private initializeBoss3(roomId: string, state: any): void {
+    // 清理旧的 Manager（如果存在）
+    this.mouseKingManagers.delete(roomId);
+    this.parrotManagers.delete(roomId);
+    this.deathManagers.delete(roomId);
+    
     const deathManager = new DeathManager();
     
     const storyManager = this.storyManagers.get(roomId);
@@ -1751,7 +1814,9 @@ export class SocketHandler {
         playerId: p.id,
         characterType: p.characterType,
         skills: storyPlayer?.skills || [],
-        items: storyPlayer?.items || []
+        items: storyPlayer?.items || [],
+        forms: storyPlayer?.forms || [],
+        transformerForm: storyPlayer?.transformerForm || null
       };
     });
 
@@ -1874,6 +1939,13 @@ export class SocketHandler {
     const deathManager = this.deathManagers.get(room.id);
     if (!deathManager) return;
 
+    // 检查是否需要玩家选择骰子点数
+    const diceSelection = deathManager.needsDiceSelection();
+    if (diceSelection?.needed) {
+      this.io.to(room.id).emit('death:diceSelectionNeeded', diceSelection);
+      return;
+    }
+
     const roundResult = deathManager.executeRoll();
     this.io.to(room.id).emit('death:roundResult', roundResult);
     this.io.to(room.id).emit('death:stateUpdate', deathManager.serializeState());
@@ -1888,6 +1960,32 @@ export class SocketHandler {
       this.io.to(room.id).emit('game:ending', { endingId: 'ending_1' });
     }
     // 失败时不立即触发结局，等待用户点击"查看结局"按钮
+  }
+
+  /**
+   * 处理设置自定义骰子点数
+   */
+  private handleDeathSetCustomDice(socket: Socket, diceValue: number): void {
+    const playerId = this.socketToPlayer.get(socket.id);
+    if (!playerId) return;
+
+    const room = this.roomManager.getPlayerRoom(playerId);
+    if (!room) return;
+
+    const deathManager = this.deathManagers.get(room.id);
+    if (!deathManager) return;
+
+    const result = deathManager.setCustomDice(diceValue);
+    if (result.success) {
+      // 设置成功后，通知客户端可以继续投掷
+      this.io.to(room.id).emit('death:customDiceSet', {
+        diceValue,
+        message: result.message
+      });
+      this.io.to(room.id).emit('death:stateUpdate', deathManager.serializeState());
+    } else {
+      socket.emit('death:error', { message: result.message });
+    }
   }
 
   /**
@@ -1907,11 +2005,17 @@ export class SocketHandler {
     
     // 如果已经完成且失败，触发结局
     if (deathState?.isComplete && deathState.result === 'lose') {
+      // 检查是否有时光机
+      if (this.checkTimeMachine(room.id)) {
+        // 等待玩家选择是否使用时光机
+        return;
+      }
+      // 失败 -> 结局1：疯人院
       this.io.to(room.id).emit('death:defeat', {
         text: (boss3DeathConfig as any).defeatText,
         ending: deathState.ending
       });
-      this.io.to(room.id).emit('game:ending', { endingId: 'ending_2' });
+      this.io.to(room.id).emit('game:ending', { endingId: 'ending_1' });
       return;
     }
     
@@ -2220,6 +2324,733 @@ export class SocketHandler {
   // ==================== 聊天室 ====================
 
   /**
+   * 处理道具选择
+   */
+  private handleItemSelect(socket: Socket, itemId: string, optionId: string): void {
+    const playerId = this.socketToPlayer.get(socket.id);
+    if (!playerId) return;
+
+    const room = this.roomManager.getPlayerRoom(playerId);
+    if (!room) return;
+
+    console.log(`道具选择: itemId=${itemId}, optionId=${optionId}`);
+
+    // 根据道具类型处理不同逻辑
+    switch (itemId) {
+      case 'anywhere_door':
+        this.handleAnywhereDoorSelect(room.id, optionId);
+        break;
+      case 'size_light':
+        this.handleSizeLightSelect(room.id, optionId);
+        break;
+      case 'time_machine':
+        this.handleTimeMachineSelect(room.id, optionId);
+        break;
+      case 'cupid_arrow':
+        this.handleCupidArrowSelect(room.id, optionId);
+        break;
+      case 'soul_bracelet':
+        this.handleSoulBraceletSelect(room.id, optionId);
+        break;
+      case 'bamboo_copter':
+        this.handleBambooCopterSelect(room.id, optionId);
+        break;
+      case 'turtle_soup':
+        this.handleTurtleSoupSelect(room.id, optionId);
+        break;
+      case 'turtle_shell_remover':
+        this.handleTurtleShellSelect(room.id, optionId);
+        break;
+      case 'sleep_gas':
+        this.handleSleepGasSelect(room.id, optionId);
+        break;
+      default:
+        socket.emit('item:error', '未知的道具');
+    }
+  }
+
+  /**
+   * 处理跳过道具使用
+   */
+  private handleItemSkip(socket: Socket, itemId: string): void {
+    const playerId = this.socketToPlayer.get(socket.id);
+    if (!playerId) return;
+
+    const room = this.roomManager.getPlayerRoom(playerId);
+    if (!room) return;
+
+    console.log(`跳过道具: itemId=${itemId}`);
+    this.io.to(room.id).emit('item:selectionComplete');
+    
+    // 根据跳过的道具类型，继续正常流程
+    if (itemId === 'anywhere_door') {
+      // 跳过任意门，正常进入BOSS1
+      setTimeout(() => this.startMouseKingBattle(room.id), 500);
+    } else if (itemId === 'size_light') {
+      // 跳过放大缩小灯，正常进入BOSS2
+      setTimeout(() => this.startParrotBattle(room.id), 500);
+    }
+    // 时光机不能跳过（canSkip=false）
+  }
+
+  /**
+   * 处理任意门选择
+   */
+  private handleAnywhereDoorSelect(roomId: string, targetBoss: string): void {
+    // targetBoss: 'boss1' | 'boss2' | 'boss3'
+    console.log(`任意门选择: 跳转到 ${targetBoss}`);
+    
+    // 根据选择跳转到对应BOSS
+    switch (targetBoss) {
+      case 'boss1':
+        // 正常进入BOSS1
+        this.io.to(roomId).emit('item:selectionComplete');
+        setTimeout(() => this.startMouseKingBattle(roomId), 500);
+        break;
+      case 'boss2':
+        // 跳过BOSS1，直接进入BOSS2
+        this.io.to(roomId).emit('item:selectionComplete');
+        this.sendSystemMessage(roomId, '🚪 任意门：跳过鼠鼠大王！');
+        setTimeout(() => this.startParrotBattle(roomId), 1000);
+        break;
+      case 'boss3':
+        // 跳过BOSS1和BOSS2，直接进入BOSS3
+        this.io.to(roomId).emit('item:selectionComplete');
+        this.sendSystemMessage(roomId, '🚪 任意门：跳过鼠鼠大王和百变小鹦！');
+        setTimeout(() => this.startDeathBattle(roomId), 1000);
+        break;
+    }
+  }
+
+  /**
+   * 处理放大缩小灯选择
+   */
+  private handleSizeLightSelect(roomId: string, option: string): void {
+    // option: 'enlarge_player' | 'shrink_boss'
+    console.log(`放大缩小灯选择: ${option}`);
+    
+    // 保存选择，在BOSS2初始化后应用
+    const storyManager = this.storyManagers.get(roomId);
+    if (storyManager) {
+      // 标记放大缩小灯效果
+      (storyManager as any).sizeLightEffect = option;
+    }
+    
+    if (option === 'enlarge_player') {
+      this.sendSystemMessage(roomId, '🔦 放大缩小灯（放大）：全体生命值将 +10！');
+    } else if (option === 'shrink_boss') {
+      this.sendSystemMessage(roomId, '🔦 放大缩小灯（缩小）：BOSS生命值将 -50%！');
+    }
+    
+    this.io.to(roomId).emit('item:selectionComplete');
+    
+    // 进入BOSS2
+    setTimeout(() => this.startParrotBattle(roomId), 500);
+  }
+
+  /**
+   * 处理时光机选择
+   */
+  private handleTimeMachineSelect(roomId: string, option: string): void {
+    // option: 'use' | 'skip'
+    console.log(`时光机选择: ${option}`);
+    
+    if (option === 'use') {
+      // 重新开始当前BOSS战
+      const mouseKingManager = this.mouseKingManagers.get(roomId);
+      const parrotManager = this.parrotManagers.get(roomId);
+      const deathManager = this.deathManagers.get(roomId);
+      
+      if (deathManager && deathManager.getState()?.isComplete) {
+        // 重新开始死神战
+        this.sendSystemMessage(roomId, '⏰ 时光机启动！回到死神战开始前...');
+        this.io.to(roomId).emit('item:selectionComplete');
+        this.startDeathBattle(roomId);
+      } else if (parrotManager && parrotManager.getState()?.isComplete) {
+        // 重新开始百变小鹦战
+        this.sendSystemMessage(roomId, '⏰ 时光机启动！回到百变小鹦战开始前...');
+        this.io.to(roomId).emit('item:selectionComplete');
+        this.startParrotBattle(roomId);
+      } else if (mouseKingManager && mouseKingManager.getState()?.isComplete) {
+        // 重新开始鼠鼠大王战
+        this.sendSystemMessage(roomId, '⏰ 时光机启动！回到鼠鼠大王战开始前...');
+        this.io.to(roomId).emit('item:selectionComplete');
+        this.startMouseKingBattle(roomId);
+      }
+    } else {
+      // 不使用时光机，触发失败结局
+      this.io.to(roomId).emit('item:selectionComplete');
+      
+      const deathManager = this.deathManagers.get(roomId);
+      const parrotManager = this.parrotManagers.get(roomId);
+      
+      if (deathManager && deathManager.getState()?.isComplete) {
+        // 死神战失败 -> 结局1
+        this.io.to(roomId).emit('death:defeat', {
+          text: (boss3DeathConfig as any).defeatText,
+          ending: 'ending_1'
+        });
+        this.io.to(roomId).emit('game:ending', { endingId: 'ending_1' });
+      } else if (parrotManager && parrotManager.getState()?.isComplete) {
+        // 百变小鹦战失败 -> 结局1
+        this.io.to(roomId).emit('parrot:defeat', {
+          text: (boss2ParrotConfig as any).defeatText,
+          ending: 'ending_1'
+        });
+        this.io.to(roomId).emit('game:ending', { endingId: 'ending_1' });
+      }
+    }
+  }
+
+  /**
+   * 处理丘比特之箭选择
+   */
+  private handleCupidArrowSelect(roomId: string, option: string): void {
+    console.log(`丘比特之箭选择: ${option}`);
+    
+    if (option === 'use') {
+      // 标记丘比特之箭效果
+      const storyManager = this.storyManagers.get(roomId);
+      if (storyManager) {
+        (storyManager as any).cupidArrowActive = true;
+        // 标记道具已使用
+        const state = storyManager.getState();
+        if (state) {
+          for (const playerState of state.playerStates) {
+            const cupidArrow = playerState.items.find((i: any) => i.id === 'cupid_arrow');
+            if (cupidArrow) {
+              cupidArrow.used = true;
+              break;
+            }
+          }
+        }
+      }
+      this.sendSystemMessage(roomId, '💘 丘比特之箭命中！BOSS爱上了你，本关卡免疫所有伤害！');
+    }
+    
+    this.io.to(roomId).emit('item:selectionComplete');
+  }
+
+  /**
+   * 处理灵魂互换手镯选择
+   */
+  private handleSoulBraceletSelect(roomId: string, option: string): void {
+    console.log(`灵魂互换手镯选择: ${option}`);
+    
+    if (option === 'use') {
+      // 标记道具已使用
+      const storyManager = this.storyManagers.get(roomId);
+      if (storyManager) {
+        const state = storyManager.getState();
+        if (state) {
+          for (const playerState of state.playerStates) {
+            const soulBracelet = playerState.items.find((i: any) => i.id === 'soul_bracelet');
+            if (soulBracelet) {
+              soulBracelet.used = true;
+              break;
+            }
+          }
+        }
+      }
+      
+      // 重新进行判定
+      const deathManager = this.deathManagers.get(roomId);
+      if (deathManager) {
+        this.sendSystemMessage(roomId, '🔮 灵魂互换手镯启动！这次失败不算，重新判定...');
+        deathManager.rerollLastBet();
+        this.io.to(roomId).emit('death:stateUpdate', deathManager.serializeState());
+      }
+    }
+    
+    this.io.to(roomId).emit('item:selectionComplete');
+  }
+
+  /**
+   * 处理竹蜻蜓选择
+   */
+  private handleBambooCopterSelect(roomId: string, option: string): void {
+    console.log(`竹蜻蜓选择: ${option}`);
+    
+    if (option === 'use') {
+      // 标记道具已使用
+      const storyManager = this.storyManagers.get(roomId);
+      if (storyManager) {
+        const state = storyManager.getState();
+        if (state) {
+          for (const playerState of state.playerStates) {
+            const bambooCopter = playerState.items.find((i: any) => i.id === 'bamboo_copter');
+            if (bambooCopter) {
+              bambooCopter.used = true;
+              break;
+            }
+          }
+        }
+      }
+      
+      this.sendSystemMessage(roomId, '🚁 竹蜻蜓启动！成功躲避了致命伤害！');
+      // 实际的躲避逻辑需要在对应的Manager中处理
+    }
+    
+    this.io.to(roomId).emit('item:selectionComplete');
+  }
+
+  /**
+   * 处理海龟汤选择
+   */
+  private handleTurtleSoupSelect(roomId: string, option: string): void {
+    console.log(`海龟汤选择: ${option}`);
+    
+    if (option === 'use') {
+      // 标记技能已使用
+      const storyManager = this.storyManagers.get(roomId);
+      if (storyManager) {
+        const state = storyManager.getState();
+        if (state) {
+          for (const playerState of state.playerStates) {
+            const turtleSoup = playerState.skills.find((s: any) => s.id === 'turtle_soup');
+            if (turtleSoup) {
+              turtleSoup.used = true;
+              break;
+            }
+          }
+        }
+      }
+      
+      // 50%概率判定
+      const success = Math.random() < 0.5;
+      
+      if (success) {
+        this.sendSystemMessage(roomId, '🐢🍜 海龟汤发动！命中汤底！直接获得战斗胜利！');
+        // 触发胜利
+        const mouseKingManager = this.mouseKingManagers.get(roomId);
+        const parrotManager = this.parrotManagers.get(roomId);
+        const deathManager = this.deathManagers.get(roomId);
+        
+        if (deathManager && !deathManager.getState()?.isComplete) {
+          deathManager.forceVictory();
+          this.io.to(roomId).emit('death:victory', { text: ['海龟汤的力量！战斗胜利！'] });
+          this.io.to(roomId).emit('game:ending', { endingId: 'ending_2' });
+        } else if (parrotManager && !parrotManager.getState()?.isComplete) {
+          parrotManager.forceVictory();
+          this.io.to(roomId).emit('parrot:victory', { text: ['海龟汤的力量！战斗胜利！'] });
+          setTimeout(() => this.initializeBoss3(roomId, this.stateManager.getState(roomId)), 3000);
+        } else if (mouseKingManager && !mouseKingManager.getState()?.isComplete) {
+          mouseKingManager.forceVictory();
+          this.io.to(roomId).emit('boss:victory', { text: ['海龟汤的力量！战斗胜利！'] });
+          setTimeout(() => this.initializeBoss2(roomId, this.stateManager.getState(roomId)), 3000);
+        }
+      } else {
+        this.sendSystemMessage(roomId, '🐢💀 海龟汤发动失败！水炮龟直接阵亡且不可复活！');
+        // 水炮龟阵亡
+        const gameState = this.stateManager.getState(roomId);
+        if (gameState) {
+          const turtlePlayer = gameState.players.find((p: any) => p.characterType === 'turtle');
+          if (turtlePlayer) {
+            turtlePlayer.health = 0;
+            turtlePlayer.isIncapacitated = true;
+            // 标记不可复活
+            (turtlePlayer as any).cannotRevive = true;
+          }
+          this.io.to(roomId).emit('game:stateUpdate', this.sanitizeState(gameState));
+        }
+      }
+    }
+    
+    this.io.to(roomId).emit('item:selectionComplete');
+  }
+
+  /**
+   * 处理龟壳拆卸器选择
+   */
+  private handleTurtleShellSelect(roomId: string, option: string): void {
+    console.log(`龟壳拆卸器选择: ${option}`);
+    
+    if (option === 'use') {
+      // 标记道具已使用
+      const storyManager = this.storyManagers.get(roomId);
+      if (storyManager) {
+        const state = storyManager.getState();
+        if (state) {
+          const turtlePlayer = state.playerStates.find((p: any) => p.characterType === 'turtle');
+          if (turtlePlayer) {
+            const shellRemover = turtlePlayer.items.find((i: any) => i.id === 'turtle_shell_remover');
+            if (shellRemover) {
+              shellRemover.used = true;
+            }
+          }
+        }
+      }
+      
+      this.sendSystemMessage(roomId, '🐢🛡️ 龟壳拆卸器启动！乌龟用龟壳保护了队友！');
+      // 实际的伤害转移逻辑需要在对应的Manager中处理
+    }
+    
+    this.io.to(roomId).emit('item:selectionComplete');
+  }
+
+  /**
+   * 处理催眠瓦斯选择
+   */
+  private handleSleepGasSelect(roomId: string, option: string): void {
+    console.log(`催眠瓦斯选择: ${option}`);
+    
+    if (option === 'use') {
+      // 标记道具已使用
+      const storyManager = this.storyManagers.get(roomId);
+      if (storyManager) {
+        const state = storyManager.getState();
+        if (state) {
+          for (const playerState of state.playerStates) {
+            const sleepGas = playerState.items.find((i: any) => i.id === 'sleep_gas');
+            if (sleepGas && !sleepGas.used) {
+              sleepGas.used = true;
+              
+              // 替换出战玩家
+              const mouseKingManager = this.mouseKingManagers.get(roomId);
+              if (mouseKingManager) {
+                mouseKingManager.replaceFighter(playerState.playerId);
+                this.io.to(roomId).emit('boss:stateUpdate', mouseKingManager.serializeState());
+              }
+              break;
+            }
+          }
+        }
+      }
+      
+      this.sendSystemMessage(roomId, '💤 催眠瓦斯释放！替换出战！');
+    }
+    
+    this.io.to(roomId).emit('item:selectionComplete');
+  }
+
+  /**
+   * 检查并触发道具选择界面
+   */
+  private checkItemSelection(roomId: string, bossType: 'boss1' | 'boss2' | 'boss3'): boolean {
+    const storyManager = this.storyManagers.get(roomId);
+    if (!storyManager) return false;
+
+    const state = storyManager.getState();
+    if (!state) return false;
+
+    // 检查是否有任意门
+    for (const playerState of state.playerStates) {
+      const hasAnywhereDoor = playerState.items.some(i => i.id === 'anywhere_door');
+      if (hasAnywhereDoor && bossType === 'boss1') {
+        // 触发任意门选择界面
+        const characterNames: Record<string, string> = { cat: '猫咪', dog: '狗狗', turtle: '乌龟' };
+        this.io.to(roomId).emit('item:selectionNeeded', {
+          itemId: 'anywhere_door',
+          itemName: '任意门',
+          itemGrade: 'SSSS',
+          itemEffect: '你可选择任意关卡开始挑战',
+          ownerName: characterNames[playerState.characterType] || '未知',
+          ownerCharacter: playerState.characterType,
+          selectionType: 'anywhere_door',
+          options: [
+            { id: 'boss1', label: '从鼠鼠大王开始', description: '正常流程，挑战第一个BOSS' },
+            { id: 'boss2', label: '跳过鼠鼠大王', description: '直接挑战百变小鹦' },
+            { id: 'boss3', label: '直接挑战死神', description: '跳过前两个BOSS，直接进入最终战' }
+          ]
+        });
+        return true;
+      }
+
+      // 检查放大缩小灯（在BOSS2开始时触发）
+      const hasSizeLight = playerState.items.some(i => i.id === 'size_light');
+      if (hasSizeLight && bossType === 'boss2') {
+        const characterNames: Record<string, string> = { cat: '猫咪', dog: '狗狗', turtle: '乌龟' };
+        this.io.to(roomId).emit('item:selectionNeeded', {
+          itemId: 'size_light',
+          itemName: '放大缩小灯',
+          itemGrade: 'SSS',
+          itemEffect: '放大：全体生命值+10 或 缩小：BOSS生命值-50%',
+          ownerName: characterNames[playerState.characterType] || '未知',
+          ownerCharacter: playerState.characterType,
+          selectionType: 'size_light',
+          options: [
+            { id: 'enlarge_player', label: '放大（玩家）', description: '全体玩家生命值 +10' },
+            { id: 'shrink_boss', label: '缩小（BOSS）', description: 'BOSS生命值 -50%' }
+          ]
+        });
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * 检查时光机（战斗失败时触发）
+   */
+  private checkTimeMachine(roomId: string): boolean {
+    const storyManager = this.storyManagers.get(roomId);
+    if (!storyManager) return false;
+
+    const state = storyManager.getState();
+    if (!state) return false;
+
+    for (const playerState of state.playerStates) {
+      const hasTimeMachine = playerState.items.some(i => i.id === 'time_machine');
+      if (hasTimeMachine) {
+        const characterNames: Record<string, string> = { cat: '猫咪', dog: '狗狗', turtle: '乌龟' };
+        this.io.to(roomId).emit('item:selectionNeeded', {
+          itemId: 'time_machine',
+          itemName: '时光机',
+          itemGrade: 'SSS',
+          itemEffect: '回到战斗开始前那一刻，重新开始本场战斗',
+          ownerName: characterNames[playerState.characterType] || '未知',
+          ownerCharacter: playerState.characterType,
+          selectionType: 'time_machine',
+          options: [
+            { id: 'use', label: '使用时光机', description: '回到战斗开始前，重新挑战' },
+            { id: 'skip', label: '不使用', description: '接受失败结果' }
+          ]
+        });
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * 启动鼠鼠大王战斗
+   */
+  private startMouseKingBattle(roomId: string): void {
+    const state = this.stateManager.getState(roomId);
+    if (!state) return;
+    this.initializeBoss1(roomId, state);
+  }
+
+  /**
+   * 启动百变小鹦战斗
+   */
+  private startParrotBattle(roomId: string): void {
+    const state = this.stateManager.getState(roomId);
+    if (!state) return;
+    this.initializeBoss2(roomId, state);
+  }
+
+  /**
+   * 启动死神战斗
+   */
+  private startDeathBattle(roomId: string): void {
+    const state = this.stateManager.getState(roomId);
+    if (!state) return;
+    this.initializeBoss3(roomId, state);
+  }
+
+  /**
+   * 检查丘比特之箭（BOSS战开始时可选择使用）
+   */
+  private checkCupidArrow(roomId: string, bossType: 'boss1' | 'boss2'): boolean {
+    const storyManager = this.storyManagers.get(roomId);
+    if (!storyManager) return false;
+
+    const state = storyManager.getState();
+    if (!state) return false;
+
+    for (const playerState of state.playerStates) {
+      const hasCupidArrow = playerState.items.some(i => i.id === 'cupid_arrow' && !i.used);
+      if (hasCupidArrow) {
+        const characterNames: Record<string, string> = { cat: '猫咪', dog: '狗狗', turtle: '乌龟' };
+        const bossName = bossType === 'boss1' ? '鼠鼠大王' : '百变小鹦';
+        this.io.to(roomId).emit('item:selectionNeeded', {
+          itemId: 'cupid_arrow',
+          itemName: '丘比特之箭',
+          itemGrade: 'SSS',
+          itemEffect: `让${bossName}爱上你，免疫本关卡所有伤害`,
+          ownerName: characterNames[playerState.characterType] || '未知',
+          ownerCharacter: playerState.characterType,
+          selectionType: 'cupid_arrow',
+          options: [
+            { id: 'use', label: '使用丘比特之箭', description: `让${bossName}爱上你，本关卡免疫所有伤害` },
+            { id: 'skip', label: '暂不使用', description: '保留道具，继续战斗' }
+          ]
+        });
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * 检查灵魂互换手镯（死神战赌输时触发）
+   */
+  private checkSoulBracelet(roomId: string): boolean {
+    const storyManager = this.storyManagers.get(roomId);
+    if (!storyManager) return false;
+
+    const state = storyManager.getState();
+    if (!state) return false;
+
+    for (const playerState of state.playerStates) {
+      const hasSoulBracelet = playerState.items.some(i => i.id === 'soul_bracelet' && !i.used);
+      if (hasSoulBracelet) {
+        const characterNames: Record<string, string> = { cat: '猫咪', dog: '狗狗', turtle: '乌龟' };
+        this.io.to(roomId).emit('item:selectionNeeded', {
+          itemId: 'soul_bracelet',
+          itemName: '灵魂互换手镯',
+          itemGrade: 'SSS',
+          itemEffect: '短暂控制死神，让这次失败的结果不会发生（赌输了不算）',
+          ownerName: characterNames[playerState.characterType] || '未知',
+          ownerCharacter: playerState.characterType,
+          selectionType: 'soul_bracelet',
+          options: [
+            { id: 'use', label: '使用灵魂互换手镯', description: '这次赌输不算，重新判定' },
+            { id: 'skip', label: '不使用', description: '接受失败结果' }
+          ]
+        });
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * 检查竹蜻蜓（即将阵亡时触发）
+   */
+  private checkBambooCopter(roomId: string, playerId: string): boolean {
+    const storyManager = this.storyManagers.get(roomId);
+    if (!storyManager) return false;
+
+    const state = storyManager.getState();
+    if (!state) return false;
+
+    const playerState = state.playerStates.find((p: any) => p.playerId === playerId);
+    if (!playerState) return false;
+
+    const hasBambooCopter = playerState.items.some((i: any) => i.id === 'bamboo_copter' && !i.used);
+    if (hasBambooCopter) {
+      const characterNames: Record<string, string> = { cat: '猫咪', dog: '狗狗', turtle: '乌龟' };
+      this.io.to(roomId).emit('item:selectionNeeded', {
+        itemId: 'bamboo_copter',
+        itemName: '竹蜻蜓',
+        itemGrade: 'S',
+        itemEffect: '躲避一次致命伤害',
+        ownerName: characterNames[playerState.characterType] || '未知',
+        ownerCharacter: playerState.characterType,
+        selectionType: 'bamboo_copter',
+        options: [
+          { id: 'use', label: '使用竹蜻蜓', description: '躲避这次致命伤害' },
+          { id: 'skip', label: '不使用', description: '接受阵亡' }
+        ]
+      });
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * 检查海龟汤（主动使用，50%胜利/50%阵亡）
+   */
+  private checkTurtleSoup(roomId: string): boolean {
+    const storyManager = this.storyManagers.get(roomId);
+    if (!storyManager) return false;
+
+    const state = storyManager.getState();
+    if (!state) return false;
+
+    for (const playerState of state.playerStates) {
+      const hasTurtleSoup = playerState.skills.some((s: any) => s.id === 'turtle_soup' && !s.used);
+      if (hasTurtleSoup) {
+        const characterNames: Record<string, string> = { cat: '猫咪', dog: '狗狗', turtle: '乌龟' };
+        this.io.to(roomId).emit('item:selectionNeeded', {
+          itemId: 'turtle_soup',
+          itemName: '海龟汤',
+          itemGrade: 'SSSSS',
+          itemEffect: '来自深海之龟的力量！50%概率直接获得战斗胜利，50%概率水炮龟直接阵亡且不可复活',
+          ownerName: characterNames[playerState.characterType] || '未知',
+          ownerCharacter: playerState.characterType,
+          selectionType: 'turtle_soup',
+          options: [
+            { id: 'use', label: '🎲 发动海龟汤！', description: '50%直接胜利 / 50%直接阵亡' },
+            { id: 'skip', label: '暂不使用', description: '保留技能，继续正常战斗' }
+          ]
+        });
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * 检查龟壳拆卸器（队友受伤时触发）
+   */
+  private checkTurtleShell(roomId: string, targetPlayerId: string): boolean {
+    const storyManager = this.storyManagers.get(roomId);
+    if (!storyManager) return false;
+
+    const state = storyManager.getState();
+    if (!state) return false;
+
+    // 找到拥有龟壳拆卸器的玩家（乌龟）
+    const turtlePlayer = state.playerStates.find((p: any) => 
+      p.characterType === 'turtle' && 
+      p.items.some((i: any) => i.id === 'turtle_shell_remover' && !i.used)
+    );
+
+    if (turtlePlayer && turtlePlayer.playerId !== targetPlayerId) {
+      const gameState = this.stateManager.getState(roomId);
+      const targetPlayer = gameState?.players.find((p: any) => p.id === targetPlayerId);
+      
+      this.io.to(roomId).emit('item:selectionNeeded', {
+        itemId: 'turtle_shell_remover',
+        itemName: '龟壳拆卸器',
+        itemGrade: 'S',
+        itemEffect: `用龟壳代替 ${targetPlayer?.name || '队友'} 承受伤害`,
+        ownerName: '乌龟',
+        ownerCharacter: 'turtle',
+        selectionType: 'turtle_shell',
+        options: [
+          { id: 'use', label: '使用龟壳保护', description: `代替 ${targetPlayer?.name || '队友'} 承受这次伤害` },
+          { id: 'skip', label: '不使用', description: '让队友自己承受伤害' }
+        ]
+      });
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * 检查催眠瓦斯（替换出场）
+   */
+  private checkSleepGas(roomId: string, currentFighterId: string): boolean {
+    const storyManager = this.storyManagers.get(roomId);
+    if (!storyManager) return false;
+
+    const state = storyManager.getState();
+    if (!state) return false;
+
+    // 找到拥有催眠瓦斯的玩家
+    for (const playerState of state.playerStates) {
+      const hasSleepGas = playerState.items.some((i: any) => i.id === 'sleep_gas' && !i.used);
+      if (hasSleepGas && playerState.playerId !== currentFighterId) {
+        const gameState = this.stateManager.getState(roomId);
+        const currentFighter = gameState?.players.find((p: any) => p.id === currentFighterId);
+        const characterNames: Record<string, string> = { cat: '猫咪', dog: '狗狗', turtle: '乌龟' };
+        
+        this.io.to(roomId).emit('item:selectionNeeded', {
+          itemId: 'sleep_gas',
+          itemName: '催眠瓦斯',
+          itemGrade: 'A',
+          itemEffect: `催眠 ${currentFighter?.name || '当前出战者'}，替换出场`,
+          ownerName: characterNames[playerState.characterType] || '未知',
+          ownerCharacter: playerState.characterType,
+          selectionType: 'sleep_gas',
+          options: [
+            { id: 'use', label: '使用催眠瓦斯', description: `催眠 ${currentFighter?.name || '当前出战者'}，你替换出场` },
+            { id: 'skip', label: '不使用', description: '让当前玩家继续战斗' }
+          ]
+        });
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
    * 处理聊天消息发送
    */
   private handleChatSend(socket: Socket, content: string): void {
@@ -2280,6 +3111,51 @@ export class SocketHandler {
     if (history.length > 100) {
       history.shift();
     }
+  }
+
+  /**
+   * 处理光标移动
+   */
+  private handleCursorMove(socket: Socket, x: number, y: number): void {
+    const playerId = this.socketToPlayer.get(socket.id);
+    if (!playerId) return;
+
+    const room = this.roomManager.getPlayerRoom(playerId);
+    if (!room) return;
+
+    // 获取玩家信息
+    const player = room.players.find(p => p.id === playerId);
+    if (!player) return;
+
+    // 获取玩家角色类型（从游戏状态中）
+    const state = this.stateManager.getState(room.id);
+    const gamePlayer = state?.players.find((p: any) => p.id === playerId);
+    const characterType = gamePlayer?.characterType;
+    const characterRevealed = gamePlayer?.characterRevealed ?? false;
+
+    // 广播给房间内其他玩家
+    socket.to(room.id).emit('cursor:update', {
+      playerId,
+      playerName: gamePlayer?.name || player.customName || player.name,
+      characterType,
+      characterRevealed,
+      x,
+      y
+    });
+  }
+
+  /**
+   * 处理光标离开（玩家关闭光标同步）
+   */
+  private handleCursorLeave(socket: Socket): void {
+    const playerId = this.socketToPlayer.get(socket.id);
+    if (!playerId) return;
+
+    const room = this.roomManager.getPlayerRoom(playerId);
+    if (!room) return;
+
+    // 通知房间内其他玩家移除该光标
+    socket.to(room.id).emit('cursor:leave', playerId);
   }
 
   /**

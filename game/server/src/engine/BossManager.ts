@@ -11,6 +11,8 @@ export interface PlayerSkillInfo {
   characterType: 'cat' | 'dog' | 'turtle';
   skills: StoryReward[];
   items: StoryReward[];
+  forms?: StoryReward[];
+  transformerForm?: string | null; // 'truck' | 'car' | 'cannon'
 }
 
 // BOSS战玩家状态
@@ -25,6 +27,8 @@ export interface BossPlayerState {
   items: StoryReward[];
   usedSkills: string[]; // 已使用的一次性技能
   usedItems: string[]; // 已使用的一次性道具
+  transformerForm?: string | null; // 变形金刚形态
+  reviveCount?: number; // 复活次数（超级跑车+纳米核心用）
 }
 
 // BOSS战基础状态

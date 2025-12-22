@@ -21,7 +21,7 @@
       "quote": "也许疯狂，才是最真实的清醒",
       "type": "hidden",
       "emotionalTone": "荒诞/反转",
-      "triggerCondition": "BOSS2失败 / BOSS3胜利",
+      "triggerCondition": "击败鼠鼠大王但未通关死神（BOSS2失败 或 BOSS3失败）",
       "scenes": [
         {
           "title": "第一幕：密室",
@@ -125,7 +125,7 @@
       "subtitle": "我也永远爱你",
       "type": "true_ending",
       "emotionalTone": "温情/感动",
-      "triggerCondition": "BOSS战第三关（死神）失败",
+      "triggerCondition": "BOSS战第三关（死神）胜利",
       "prologue": [
         "你们不计后果地向死神发起挑战，最终打动了死神。",
         "他向你们讲述了这个世界的起源：",

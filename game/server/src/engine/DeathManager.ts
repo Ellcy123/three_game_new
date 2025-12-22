@@ -95,7 +95,9 @@ export class DeathManager {
       skills: p.skills,
       items: p.items,
       usedSkills: [],
-      usedItems: []
+      usedItems: [],
+      transformerForm: p.transformerForm || null,
+      reviveCount: 0
     }));
 
     // 计算初始筹码 = 三人生命值总和
@@ -113,8 +115,21 @@ export class DeathManager {
         skillBonuses.push('坦克的重要性(+20)');
       }
       if (hasSkill(player, 'particle_beam')) {
-        initialChips += 200;
-        skillBonuses.push('粒子光束炮(+200)');
+        // 粒子光束炮：减少目标筹码200（在后面设置targetChips时处理）
+        skillBonuses.push('粒子光束炮(目标-200)');
+      }
+      // 卡尔斯纳米核心 - 重型卡车形态：+15生命值
+      if (hasItem(player, 'nano_core') && player.transformerForm === 'truck') {
+        initialChips += 15;
+        skillBonuses.push('卡尔斯纳米核心·重型卡车(+15)');
+      }
+    }
+
+    // 计算目标筹码（默认1000，粒子光束炮减少200）
+    let targetChips = config.targetChips || 1000;
+    for (const player of players) {
+      if (hasSkill(player, 'particle_beam')) {
+        targetChips -= 200;
       }
     }
 
@@ -125,7 +140,7 @@ export class DeathManager {
       round: 0,
       maxRounds: config.maxRounds || 15,
       chips: initialChips,
-      targetChips: config.targetChips || 1000,
+      targetChips: targetChips,
       players,
       isComplete: false,
       result: 'pending',
@@ -471,7 +486,7 @@ export class DeathManager {
         result.message = `💀 骰子点数${dice}...直接死亡！`;
         this.state.isComplete = true;
         this.state.result = 'lose';
-        this.state.ending = 'ending_2';
+        this.state.ending = 'ending_1'; // 疯人院结局（已击败鼠鼠大王但未通关死神）
         this.state.phase = 'defeat';
         return;
       }
@@ -606,6 +621,7 @@ export class DeathManager {
 
   /**
    * 检查定制骰子技能
+   * 返回0表示需要玩家选择，返回1-6表示自动使用该点数
    */
   private checkCustomDice(round: number): number {
     if (!this.state) return 0;
@@ -614,24 +630,86 @@ export class DeathManager {
     if (round === 1) {
       for (const player of this.state.players) {
         if (hasSkill(player, 'storm_fury') && !isSkillUsed(player, 'storm_fury')) {
-          markSkillUsed(player, 'storm_fury');
-          // 返回玩家指定的点数（这里需要前端交互，暂时返回6）
-          return 0; // 返回0表示需要玩家选择
+          // 返回0表示需要玩家选择点数
+          return 0;
         }
       }
     }
 
-    // 第3轮：卡尔斯纳米核心
+    // 第3轮：卡尔斯纳米核心（巨型炮台形态）
     if (round === 3) {
       for (const player of this.state.players) {
-        if (hasSkill(player, 'karls_nano_core') && !isSkillUsed(player, 'karls_nano_core')) {
-          markSkillUsed(player, 'karls_nano_core');
+        if (hasItem(player, 'nano_core') && player.transformerForm === 'cannon' && !isItemUsed(player, 'nano_core')) {
+          // 返回0表示需要玩家选择点数
           return 0;
         }
       }
     }
 
     return 0;
+  }
+
+  /**
+   * 检查是否需要玩家选择骰子点数
+   */
+  needsDiceSelection(): { needed: boolean; skillName: string; playerId: string } | null {
+    if (!this.state) return null;
+
+    const round = this.state.round;
+
+    // 第1轮：奥义・疾风骤雨
+    if (round === 1) {
+      for (const player of this.state.players) {
+        if (hasSkill(player, 'storm_fury') && !isSkillUsed(player, 'storm_fury')) {
+          return { needed: true, skillName: '奥义・疾风骤雨', playerId: player.playerId };
+        }
+      }
+    }
+
+    // 第3轮：卡尔斯纳米核心（巨型炮台形态）
+    if (round === 3) {
+      for (const player of this.state.players) {
+        if (hasItem(player, 'nano_core') && player.transformerForm === 'cannon' && !isItemUsed(player, 'nano_core')) {
+          return { needed: true, skillName: '卡尔斯纳米核心·巨型炮台', playerId: player.playerId };
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * 设置玩家选择的骰子点数
+   */
+  setCustomDice(diceValue: number): { success: boolean; message: string } {
+    if (!this.state) return { success: false, message: '状态未初始化' };
+    if (diceValue < 1 || diceValue > 6) return { success: false, message: '骰子点数必须在1-6之间' };
+
+    const round = this.state.round;
+
+    // 第1轮：奥义・疾风骤雨
+    if (round === 1) {
+      for (const player of this.state.players) {
+        if (hasSkill(player, 'storm_fury') && !isSkillUsed(player, 'storm_fury')) {
+          markSkillUsed(player, 'storm_fury');
+          this.state.lastDiceResult = diceValue;
+          return { success: true, message: `奥义・疾风骤雨：骰子点数设定为 ${diceValue}` };
+        }
+      }
+    }
+
+    // 第3轮：卡尔斯纳米核心（巨型炮台形态）
+    if (round === 3) {
+      for (const player of this.state.players) {
+        if (hasItem(player, 'nano_core') && player.transformerForm === 'cannon' && !isItemUsed(player, 'nano_core')) {
+          markItemUsed(player, 'nano_core');
+          this.state.lastDiceResult = diceValue;
+          return { success: true, message: `卡尔斯纳米核心：骰子点数设定为 ${diceValue}` };
+        }
+      }
+    }
+
+    return { success: false, message: '当前轮次没有可用的骰子定制技能' };
   }
 
   /**
@@ -728,22 +806,23 @@ export class DeathManager {
     if (!this.state) return;
     if (this.state.isComplete) return;
 
-    // 胜利检查
-    if (this.state.chips > this.state.targetChips) {
+    // 胜利检查 - 进入结局2（我也永远爱你）
+    if (this.state.chips >= this.state.targetChips) {
       this.state.isComplete = true;
       this.state.result = 'win';
+      this.state.ending = 'ending_2'; // 真结局：我也永远爱你
       this.state.phase = 'victory';
       return;
     }
 
-    // 失败检查（筹码归零）
+    // 失败检查（筹码归零）- 进入结局1（疯人院）
     if (this.state.chips <= 0) {
       if (this.checkRevivalSkills()) {
         return; // 复活成功
       }
       this.state.isComplete = true;
       this.state.result = 'lose';
-      this.state.ending = 'ending_2';
+      this.state.ending = 'ending_1'; // 疯人院结局（已击败鼠鼠大王但未通关死神）
       this.state.phase = 'defeat';
       return;
     }
@@ -751,12 +830,13 @@ export class DeathManager {
     // 第15轮结束检查
     if (this.state.round >= this.state.maxRounds) {
       this.state.isComplete = true;
-      if (this.state.chips > this.state.targetChips) {
+      if (this.state.chips >= this.state.targetChips) {
         this.state.result = 'win';
+        this.state.ending = 'ending_2'; // 真结局：我也永远爱你
         this.state.phase = 'victory';
       } else {
         this.state.result = 'lose';
-        this.state.ending = 'ending_2';
+        this.state.ending = 'ending_1'; // 疯人院结局
         this.state.phase = 'defeat';
       }
     }
@@ -791,7 +871,13 @@ export class DeathManager {
     for (const player of this.state.players) {
       if (hasSkill(player, 'second_engine')) {
         if (rollDice() <= 3) {
-          this.state.chips = 20;
+          let reviveHealth = 20;
+          // 卡尔斯纳米核心 - 超级跑车形态：每复活1次+10生命值
+          if (hasItem(player, 'nano_core') && player.transformerForm === 'car') {
+            player.reviveCount = (player.reviveCount || 0) + 1;
+            reviveHealth += player.reviveCount * 10;
+          }
+          this.state.chips = reviveHealth;
           return true;
         }
       }
@@ -849,6 +935,35 @@ export class DeathManager {
         items: p.items.map(i => ({ id: i.id, name: i.name, grade: i.grade, effect: i.effect }))
       }))
     };
+  }
+
+  /**
+   * 重新进行上一次判定（灵魂互换手镯）
+   */
+  rerollLastBet(): void {
+    if (!this.state || !this.state.lastRoundResult) return;
+    
+    // 重新投掷骰子
+    const newDice = rollDice();
+    this.state.lastDiceResult = newDice;
+    
+    // 重新计算结果
+    const config = this.state.currentRoundConfig;
+    if (config) {
+      // 简化处理：重投后重新判定
+      this.state.phase = 'rolling';
+    }
+  }
+
+  /**
+   * 强制胜利（海龟汤）
+   */
+  forceVictory(): void {
+    if (!this.state) return;
+    this.state.isComplete = true;
+    this.state.result = 'win';
+    this.state.ending = 'ending_2';
+    this.state.phase = 'victory';
   }
 }
 

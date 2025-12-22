@@ -6,17 +6,26 @@
       "A": {
         "text": "重型卡车 —— 碾压一切，守护城市",
         "story": ["你变成了一台重型卡车！", "巨大的车身碾压一切敌人，守护着城市的安全。"],
-        "reward": { "type": "skill", "id": "truck_guard", "name": "百吨大王的守护", "grade": "S", "effect": "你横在敌人面前，队友的笑容由你来守护。在你阵亡之前的所有伤害由你一人承担", "healthBonus": 15, "form": "truck" }
+        "rewards": [
+          { "type": "form", "id": "truck", "name": "重型卡车", "grade": "SS", "effect": "生命值 +15", "healthBonus": 15 },
+          { "type": "skill", "id": "truck_guard", "name": "百吨大王的守护", "grade": "S", "effect": "你横在敌人面前，队友的笑容由你来守护。在你阵亡之前的所有伤害由你一人承担" }
+        ]
       },
       "B": {
         "text": "超级跑车 —— 风驰电掣，逐个击破",
         "story": ["你变成了一台超级跑车！", "风驰电掣的速度让敌人根本追不上你。"],
-        "reward": { "type": "skill", "id": "supersonic", "name": "超音速急行", "grade": "SSSS", "effect": "你极难被命中，受到伤害时会进行判定，只有1/6概率被击中（最终关卡为50%）", "form": "car", "specialEffect": "maxHealth1" }
+        "rewards": [
+          { "type": "form", "id": "car", "name": "超级跑车", "grade": "SS", "effect": "固定生命值上限为1（最终关卡时取消）", "specialEffect": "maxHealth1" },
+          { "type": "skill", "id": "supersonic", "name": "超音速急行", "grade": "SSSS", "effect": "你极难被命中，受到伤害时会进行判定，只有1/6概率被击中（最终关卡为50%）" }
+        ]
       },
       "C": {
         "text": "巨型炮台 —— 精准打击，横扫战场",
         "story": ["你变成了一架巨型炮台！", "精准的火力让敌人无处可逃。"],
-        "reward": { "type": "skill", "id": "precision", "name": "精准打击", "grade": "SSS", "effect": "BOSS战最终关卡时，你可消耗50生命值，重新进行判定，限1次", "healthBonus": 5, "form": "cannon" }
+        "rewards": [
+          { "type": "form", "id": "cannon", "name": "巨型炮台", "grade": "SS", "effect": "生命值 +5", "healthBonus": 5 },
+          { "type": "skill", "id": "precision", "name": "精准打击", "grade": "SSS", "effect": "BOSS战最终关卡时，你可消耗50生命值，重新进行判定，限1次" }
+        ]
       }
     }
   },

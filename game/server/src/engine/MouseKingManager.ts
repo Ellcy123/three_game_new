@@ -1030,6 +1030,27 @@ export class MouseKingManager {
       reason: `洞口 ${index + 1} 已被技能排除`
     }));
   }
+
+  /**
+   * 强制胜利（海龟汤）
+   */
+  forceVictory(): void {
+    if (!this.state) return;
+    this.state.isComplete = true;
+    this.state.result = 'win';
+    this.state.phase = 'victory';
+  }
+
+  /**
+   * 替换出战玩家（催眠瓦斯）
+   */
+  replaceFighter(newFighterId: string): void {
+    if (!this.state) return;
+    const newFighter = this.state.players.find(p => p.playerId === newFighterId);
+    if (newFighter && newFighter.isAlive) {
+      this.state.currentPlayerId = newFighterId;
+    }
+  }
 }
 
 // 默认导出

@@ -13,6 +13,21 @@ export interface ChatMessage {
 // 主题类型
 export type ChatTheme = 'dark' | 'light';
 
+// 常用表情列表
+const EMOJI_LIST = [
+  // 表情
+  '😀', '😂', '🤣', '😊', '😍', '🥰', '😘', '😎',
+  '🤔', '😅', '😢', '😭', '😱', '😤', '🥺', '😴',
+  // 动物
+  '🐱', '🐶', '🐸', '🐭', '🦜', '💀', '🐰', '🦊',
+  // 手势
+  '👍', '👎', '👏', '🙏', '💪', '✌️', '🤝', '👋',
+  // 物品/符号
+  '❤️', '💔', '⭐', '🔥', '💯', '✨', '🎉', '🎊',
+  // 游戏相关
+  '🎮', '🎲', '🏆', '🥇', '💰', '🗡️', '🛡️', '⚔️'
+];
+
 interface ChatRoomProps {
   messages: ChatMessage[];
   playerId: string;
@@ -69,9 +84,11 @@ export function ChatRoom({
   const [inputValue, setInputValue] = useState('');
   const [showHelpMenu, setShowHelpMenu] = useState(false);
   const [showSecretMenu, setShowSecretMenu] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [secretClickCount, setSecretClickCount] = useState(0);
   const [copied, setCopied] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // 秘密点击计数器 - 连续点击3次骨头才显示秘密菜单
   const handleSecretClick = () => {
@@ -103,6 +120,14 @@ export function ChatRoom({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
+  };
+
+  // 插入表情
+  const handleInsertEmoji = (emoji: string) => {
+    setInputValue(prev => prev + emoji);
+    setShowEmojiPicker(false);
+    // 聚焦输入框
+    inputRef.current?.focus();
   };
 
   // 根据主题获取角色配置
@@ -329,11 +354,62 @@ export function ChatRoom({
         {/* 输入区域 */}
         <div className={`p-3 ${themeStyles.inputAreaBg} border-t`}>
           <div className="flex items-center gap-2">
+            {/* 表情按钮 */}
+            <div className="relative">
+              <button
+                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                disabled={!enabled}
+                className={`w-10 h-10 rounded-full flex items-center justify-center
+                          ${theme === 'dark' 
+                            ? 'bg-white/10 hover:bg-white/20 text-yellow-300' 
+                            : 'bg-white hover:bg-gray-50 text-yellow-500 border border-gray-200'}
+                          disabled:opacity-50 disabled:cursor-not-allowed
+                          transition-all duration-200`}
+                title="表情"
+              >
+                😊
+              </button>
+              
+              {/* 表情选择器 */}
+              {showEmojiPicker && (
+                <div className={`absolute bottom-full left-0 mb-2 w-64 rounded-xl shadow-xl 
+                              border overflow-hidden z-50
+                              ${theme === 'dark' 
+                                ? 'bg-slate-800 border-purple-400/50' 
+                                : 'bg-white border-gray-200'}`}>
+                  <div className={`p-2 border-b ${theme === 'dark' 
+                    ? 'bg-purple-900/50 border-purple-400/30' 
+                    : 'bg-gray-50 border-gray-200'}`}>
+                    <span className={`text-xs font-medium ${theme === 'dark' ? 'text-purple-200' : 'text-gray-600'}`}>
+                      😊 选择表情
+                    </span>
+                  </div>
+                  <div className="p-2 grid grid-cols-8 gap-1 max-h-40 overflow-y-auto">
+                    {EMOJI_LIST.map((emoji, index) => (
+                      <button
+                        key={index}
+                        onClick={() => handleInsertEmoji(emoji)}
+                        className={`w-7 h-7 flex items-center justify-center rounded text-lg
+                                  hover:scale-125 transition-transform
+                                  ${theme === 'dark' 
+                                    ? 'hover:bg-purple-500/30' 
+                                    : 'hover:bg-yellow-100'}`}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            
             <input
+              ref={inputRef}
               type="text"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
+              onFocus={() => setShowEmojiPicker(false)}
               disabled={!enabled}
               placeholder={enabled ? (theme === 'dark' ? '说点什么吧~ ✨' : '说点什么吧~ 🌸') : '聊天已禁用'}
               className={`flex-1 px-4 py-2.5 rounded-full text-sm 
