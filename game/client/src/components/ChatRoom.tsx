@@ -36,6 +36,15 @@ interface ChatRoomProps {
   disableReason?: string;
   characterRevealed?: boolean; // 角色是否已揭示
   theme?: ChatTheme; // 主题：dark=紫色暗黑，light=黄橙欢乐
+  // 玩家面板相关
+  players?: Array<{
+    id: string;
+    name: string;
+    characterType?: string;
+    characterRevealed?: boolean;
+  }>;
+  hammerCounts?: Record<string, number>; // 敲击计数
+  onHammerHit?: (targetPlayerId: string) => void; // 敲击回调
   onSendMessage: (content: string) => void;
   onForceAdvance?: () => void;
   onReturnToLobby?: () => void;
@@ -76,6 +85,9 @@ export function ChatRoom({
   disableReason,
   characterRevealed = false,
   theme = 'dark',
+  players = [],
+  hammerCounts = {},
+  onHammerHit,
   onSendMessage,
   onForceAdvance,
   onReturnToLobby,
@@ -87,6 +99,7 @@ export function ChatRoom({
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [secretClickCount, setSecretClickCount] = useState(0);
   const [copied, setCopied] = useState(false);
+  const [hammerEffects, setHammerEffects] = useState<Record<string, boolean>>({}); // 敲击特效状态
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -120,6 +133,17 @@ export function ChatRoom({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
+  };
+
+  // 处理敲击
+  const handleHammerHit = (targetId: string) => {
+    if (targetId === playerId || !onHammerHit) return;
+    onHammerHit(targetId);
+    // 显示敲击特效
+    setHammerEffects(prev => ({ ...prev, [targetId]: true }));
+    setTimeout(() => {
+      setHammerEffects(prev => ({ ...prev, [targetId]: false }));
+    }, 300);
   };
 
   // 插入表情
@@ -266,6 +290,73 @@ export function ChatRoom({
             </button>
           )}
         </div>
+
+        {/* 玩家面板 - 敲击互动区域 */}
+        {players.length > 0 && (
+          <div className={`px-3 py-2 border-b ${theme === 'dark' ? 'border-purple-400/30 bg-white/5' : 'border-green-200 bg-white/50'}`}>
+            <div className="flex justify-around items-center">
+              {players.map((player) => {
+                const isMe = player.id === playerId;
+                const charConfig = player.characterType && player.characterRevealed 
+                  ? CHARACTER_CONFIG[player.characterType as keyof typeof CHARACTER_CONFIG] 
+                  : null;
+                const showEmoji = player.characterRevealed && charConfig;
+                const hitCount = hammerCounts[player.id] || 0;
+                const isHitting = hammerEffects[player.id];
+
+                return (
+                  <div 
+                    key={player.id} 
+                    className="flex flex-col items-center gap-1"
+                  >
+                    {/* 头像 */}
+                    <button
+                      onClick={() => handleHammerHit(player.id)}
+                      disabled={isMe}
+                      className={`w-12 h-12 rounded-full flex items-center justify-center
+                                shadow-md border-2 transition-all duration-200
+                                ${isMe 
+                                  ? 'opacity-60 cursor-default' 
+                                  : 'cursor-pointer hover:scale-110 active:scale-95'}
+                                ${!isMe && 'hover:cursor-[url("data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'32\' height=\'32\' viewBox=\'0 0 100 100\'><text y=\'.9em\' font-size=\'80\'>🔨</text></svg>"),auto]'}
+                                ${isHitting ? 'animate-bounce scale-90' : ''}
+                                ${showEmoji 
+                                  ? charConfig.bgColor + ' ' + charConfig.color
+                                  : theme === 'dark' 
+                                    ? 'bg-gradient-to-br from-purple-500/30 to-indigo-500/30 border-purple-400/50' 
+                                    : 'bg-gradient-to-br from-blue-200 to-purple-200 border-white'}
+                                ${theme === 'dark' ? 'border-purple-400/50' : 'border-white'}`}
+                      title={isMe ? '这是你自己' : `敲一下 ${player.name}`}
+                    >
+                      {showEmoji ? (
+                        <span className="text-2xl">{charConfig.emoji}</span>
+                      ) : (
+                        <span className={`font-bold text-lg ${theme === 'dark' ? 'text-purple-200' : 'text-gray-600'}`}>
+                          {player.name.charAt(0).toUpperCase()}
+                        </span>
+                      )}
+                      {/* 敲击特效 */}
+                      {isHitting && (
+                        <span className="absolute -top-1 -right-1 text-xl animate-ping">💥</span>
+                      )}
+                    </button>
+                    {/* 名字 */}
+                    <span className={`text-xs font-medium truncate max-w-[60px]
+                                   ${showEmoji ? charConfig.color : theme === 'dark' ? 'text-purple-300' : 'text-gray-600'}`}>
+                      {player.name}
+                    </span>
+                    {/* 被敲击次数 */}
+                    {hitCount > 0 && (
+                      <span className={`text-xs ${theme === 'dark' ? 'text-amber-300' : 'text-amber-600'}`}>
+                        🔨 ×{hitCount}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* 消息列表 */}
         <div className="flex-1 overflow-y-auto px-3 py-3 space-y-3">

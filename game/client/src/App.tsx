@@ -103,6 +103,10 @@ function App() {
     remoteCursors,
     cursorEnabled,
     sendCursorPosition,
+    // 敲击互动
+    hammerCounts,
+    shouldShake,
+    sendHammerHit,
     // 帮助功能
     forceAdvance,
     returnToLobby,
@@ -135,6 +139,19 @@ function App() {
 
   // 判断是否是房主
   const isHost = room?.players?.find(p => p.id === playerId)?.isHost ?? false;
+
+  // 获取玩家列表（用于聊天室玩家面板）
+  const chatPlayers = gameState?.players?.map(p => ({
+    id: p.id,
+    name: p.name,
+    characterType: p.characterType,
+    characterRevealed: p.characterRevealed
+  })) ?? room?.players?.map(p => ({
+    id: p.id,
+    name: p.customName || p.name,
+    characterType: undefined,
+    characterRevealed: false
+  })) ?? [];
 
   // 道具选择模态框（全局显示，优先级最高）
   const renderItemSelectionModal = () => {
@@ -226,6 +243,10 @@ function App() {
           onToggleBgmMute={toggleBgmMute}
           onToggleBgmPlay={toggleBgmPlay}
           onChangeBgmVolume={changeBgmVolume}
+          players={chatPlayers}
+          hammerCounts={hammerCounts}
+          shouldShake={shouldShake}
+          onHammerHit={sendHammerHit}
         >
           <EndingScreen
             endingId={endingId}
@@ -271,6 +292,10 @@ function App() {
           onToggleBgmMute={toggleBgmMute}
           onToggleBgmPlay={toggleBgmPlay}
           onChangeBgmVolume={changeBgmVolume}
+          players={chatPlayers}
+          hammerCounts={hammerCounts}
+          shouldShake={shouldShake}
+          onHammerHit={sendHammerHit}
         >
           <DeathScreen
             playerId={playerId}
@@ -323,6 +348,10 @@ function App() {
           onToggleBgmMute={toggleBgmMute}
           onToggleBgmPlay={toggleBgmPlay}
           onChangeBgmVolume={changeBgmVolume}
+          players={chatPlayers}
+          hammerCounts={hammerCounts}
+          shouldShake={shouldShake}
+          onHammerHit={sendHammerHit}
         >
           <ParrotScreen
             playerId={playerId}
@@ -370,6 +399,10 @@ function App() {
           onToggleBgmMute={toggleBgmMute}
           onToggleBgmPlay={toggleBgmPlay}
           onChangeBgmVolume={changeBgmVolume}
+          players={chatPlayers}
+          hammerCounts={hammerCounts}
+          shouldShake={shouldShake}
+          onHammerHit={sendHammerHit}
         >
           <MouseKingScreen
             playerId={playerId}
@@ -407,6 +440,10 @@ function App() {
         onToggleBgmMute={toggleBgmMute}
         onToggleBgmPlay={toggleBgmPlay}
         onChangeBgmVolume={changeBgmVolume}
+        players={chatPlayers}
+        hammerCounts={hammerCounts}
+        shouldShake={shouldShake}
+        onHammerHit={sendHammerHit}
       >
         <StoryScreen
           playerId={playerId}
@@ -443,6 +480,10 @@ function App() {
         onToggleBgmMute={toggleBgmMute}
         onToggleBgmPlay={toggleBgmPlay}
         onChangeBgmVolume={changeBgmVolume}
+        players={chatPlayers}
+        hammerCounts={hammerCounts}
+        shouldShake={shouldShake}
+        onHammerHit={sendHammerHit}
       >
         <TurtleSoupScreen
           soupState={soupState}
@@ -485,6 +526,10 @@ function App() {
         onToggleBgmMute={toggleBgmMute}
         onToggleBgmPlay={toggleBgmPlay}
         onChangeBgmVolume={changeBgmVolume}
+        players={chatPlayers}
+        hammerCounts={hammerCounts}
+        shouldShake={shouldShake}
+        onHammerHit={sendHammerHit}
       >
         <HidingScreen
           roomId={room.id}
@@ -533,6 +578,10 @@ function App() {
             skipToSoup: debugSkipToSoup,
           skipToLevel3: debugSkipToLevel3
         }}
+        players={chatPlayers}
+        hammerCounts={hammerCounts}
+        shouldShake={shouldShake}
+        onHammerHit={sendHammerHit}
       >
         <GameScreen
           gameState={gameState}
@@ -577,6 +626,10 @@ function App() {
             skipToSoup: debugSkipToSoup,
             skipToLevel3: debugSkipToLevel3
           }}
+          players={chatPlayers}
+          hammerCounts={hammerCounts}
+          shouldShake={shouldShake}
+          onHammerHit={sendHammerHit}
         >
           <WaitingRoom
             room={room}
@@ -626,7 +679,11 @@ function WithChat({
   onToggleBgmMute,
   onToggleBgmPlay,
   onChangeBgmVolume,
-  debugActions
+  debugActions,
+  players,
+  hammerCounts,
+  shouldShake,
+  onHammerHit
 }: {
   children: React.ReactNode;
   chatMessages: any[];
@@ -652,9 +709,35 @@ function WithChat({
     skipToSoup?: () => void;
     skipToLevel3?: () => void;
   };
+  players?: Array<{
+    id: string;
+    name: string;
+    characterType?: string;
+    characterRevealed?: boolean;
+  }>;
+  hammerCounts?: Record<string, number>;
+  shouldShake?: boolean;
+  onHammerHit?: (targetPlayerId: string) => void;
 }) {
   return (
-    <div className="min-h-screen pr-80">
+    <div className={`min-h-screen pr-80 ${shouldShake ? 'animate-shake' : ''}`}>
+      <style>{`
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          10% { transform: translateX(-8px); }
+          20% { transform: translateX(8px); }
+          30% { transform: translateX(-6px); }
+          40% { transform: translateX(6px); }
+          50% { transform: translateX(-4px); }
+          60% { transform: translateX(4px); }
+          70% { transform: translateX(-2px); }
+          80% { transform: translateX(2px); }
+          90% { transform: translateX(-1px); }
+        }
+        .animate-shake {
+          animation: shake 0.5s ease-in-out;
+        }
+      `}</style>
       {children}
       <ChatRoom
         messages={chatMessages}
@@ -664,6 +747,9 @@ function WithChat({
         disableReason={chatDisableReason}
         characterRevealed={characterRevealed}
         theme={chatTheme}
+        players={players}
+        hammerCounts={hammerCounts}
+        onHammerHit={onHammerHit}
         onSendMessage={sendChatMessage}
         onForceAdvance={onForceAdvance}
         onReturnToLobby={onReturnToLobby}

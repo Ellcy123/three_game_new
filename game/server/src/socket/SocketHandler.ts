@@ -60,6 +60,8 @@ export class SocketHandler {
   private chatEnabled: Map<string, boolean> = new Map(); // roomId -> enabled
   private lastSystemMessage: Map<string, { content: string; timestamp: number }> = new Map(); // roomId -> last message
   private disconnectTimers: Map<string, NodeJS.Timeout> = new Map(); // playerId -> disconnect timer
+  private hammerCounts: Map<string, Map<string, number>> = new Map(); // roomId -> (playerId -> hitCount)
+  private lastShakeTime: Map<string, number> = new Map(); // playerId -> lastShakeTimestamp
 
   constructor(io: Server) {
     this.io = io;
@@ -154,6 +156,9 @@ export class SocketHandler {
       socket.on('cursor:move', (data: { x: number; y: number }) => this.handleCursorMove(socket, data.x, data.y));
       socket.on('cursor:leave', () => this.handleCursorLeave(socket));
 
+      // 敲击互动事件
+      socket.on('hammer:hit', (targetPlayerId: string) => this.handleHammerHit(socket, targetPlayerId));
+
       // 道具选择事件
       socket.on('item:select', (itemId: string, optionId: string) => this.handleItemSelect(socket, itemId, optionId));
       socket.on('item:skip', (itemId: string) => this.handleItemSkip(socket, itemId));
@@ -236,6 +241,15 @@ export class SocketHandler {
     const deathManager = this.deathManagers.get(roomId);
     const soupManager = this.turtleSoupManagers.get(roomId);
     
+    // 获取敲击计数
+    const roomHammerCounts = this.hammerCounts.get(roomId);
+    const hammerCountsObj: Record<string, number> = {};
+    if (roomHammerCounts) {
+      roomHammerCounts.forEach((count, pid) => {
+        hammerCountsObj[pid] = count;
+      });
+    }
+    
     // 发送重连成功消息
     socket.emit('room:reconnected', {
       roomId: room.id,
@@ -251,7 +265,8 @@ export class SocketHandler {
       deathState: deathManager ? deathManager.serializeState() : null,
       soupState: soupManager ? soupManager.serializeState() : null,
       endingId: null, // TODO: 如果需要支持结局重连
-      chatHistory: this.chatHistory.get(roomId) || []
+      chatHistory: this.chatHistory.get(roomId) || [],
+      hammerCounts: hammerCountsObj
     });
     
     // 通知其他玩家 - 使用游戏内名字
@@ -3156,6 +3171,57 @@ export class SocketHandler {
 
     // 通知房间内其他玩家移除该光标
     socket.to(room.id).emit('cursor:leave', playerId);
+  }
+
+  /**
+   * 处理敲击互动
+   */
+  private handleHammerHit(socket: Socket, targetPlayerId: string): void {
+    const playerId = this.socketToPlayer.get(socket.id);
+    if (!playerId) return;
+
+    // 不能敲自己
+    if (playerId === targetPlayerId) return;
+
+    const room = this.roomManager.getPlayerRoom(playerId);
+    if (!room) return;
+
+    // 确保目标玩家在同一房间
+    const targetPlayer = room.players.find(p => p.id === targetPlayerId);
+    if (!targetPlayer) return;
+
+    // 获取或初始化房间的敲击计数
+    let roomCounts = this.hammerCounts.get(room.id);
+    if (!roomCounts) {
+      roomCounts = new Map();
+      this.hammerCounts.set(room.id, roomCounts);
+    }
+
+    // 增加目标玩家的被敲击计数
+    const currentCount = roomCounts.get(targetPlayerId) || 0;
+    roomCounts.set(targetPlayerId, currentCount + 1);
+
+    // 转换为对象格式广播
+    const countsObj: Record<string, number> = {};
+    roomCounts.forEach((count, pid) => {
+      countsObj[pid] = count;
+    });
+
+    // 广播更新后的计数给所有玩家
+    this.io.to(room.id).emit('hammer:update', { counts: countsObj });
+
+    // 检查是否需要触发目标玩家的屏幕震动（10秒冷却）
+    const now = Date.now();
+    const lastShake = this.lastShakeTime.get(targetPlayerId) || 0;
+    if (now - lastShake >= 10000) {
+      this.lastShakeTime.set(targetPlayerId, now);
+      
+      // 找到目标玩家的socket并发送震动事件
+      const targetSocketId = (targetPlayer as any).socketId;
+      if (targetSocketId) {
+        this.io.to(targetSocketId).emit('hammer:shake');
+      }
+    }
   }
 
   /**

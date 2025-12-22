@@ -199,6 +199,11 @@ export function useSocket() {
   const [remoteCursors, setRemoteCursors] = useState<any[]>([]);
   const [cursorEnabled, setCursorEnabled] = useState(true);
   
+  // 敲击互动状态
+  const [hammerCounts, setHammerCounts] = useState<Record<string, number>>({}); // playerId -> hitCount
+  const [shouldShake, setShouldShake] = useState(false); // 是否应该震动屏幕
+  const lastShakeTimeRef = useRef<number>(0); // 上次震动时间
+  
   // 重连状态
   const [isReconnecting, setIsReconnecting] = useState(false);
   const hasAttemptedReconnect = useRef(false);
@@ -258,6 +263,7 @@ export function useSocket() {
       soupState: any;
       endingId: string | null;
       chatHistory: any[];
+      hammerCounts?: Record<string, number>;
     }) => {
       console.log('重连成功:', data);
       setIsReconnecting(false);
@@ -288,6 +294,7 @@ export function useSocket() {
       if (data.soupState) setSoupState(data.soupState);
       if (data.endingId) setEndingId(data.endingId as any);
       if (data.chatHistory) setChatMessages(data.chatHistory);
+      if (data.hammerCounts) setHammerCounts(data.hammerCounts);
     });
     
     // 重连失败
@@ -636,6 +643,22 @@ export function useSocket() {
       setRemoteCursors(prev => prev.filter(c => c.playerId !== leavingPlayerId));
     });
 
+    // 敲击互动事件
+    socket.on('hammer:update', (data: { counts: Record<string, number> }) => {
+      setHammerCounts(data.counts);
+    });
+
+    socket.on('hammer:shake', () => {
+      // 检查震动冷却（客户端也做一次检查，双重保险）
+      const now = Date.now();
+      if (now - lastShakeTimeRef.current >= 10000) {
+        lastShakeTimeRef.current = now;
+        setShouldShake(true);
+        // 震动效果持续500ms后重置
+        setTimeout(() => setShouldShake(false), 500);
+      }
+    });
+
     return () => {
       socket.disconnect();
     };
@@ -892,6 +915,11 @@ export function useSocket() {
     }
   }, []);
 
+  // 敲击互动操作
+  const sendHammerHit = useCallback((targetPlayerId: string) => {
+    socketRef.current?.emit('hammer:hit', targetPlayerId);
+  }, []);
+
   // 道具选择操作
   const itemSelect = useCallback((itemId: string, optionId: string) => {
     socketRef.current?.emit('item:select', itemId, optionId);
@@ -1038,6 +1066,10 @@ export function useSocket() {
     cursorEnabled,
     sendCursorPosition,
     toggleCursorSync,
+    // 敲击互动
+    hammerCounts,
+    shouldShake,
+    sendHammerHit,
     // 帮助功能
     forceAdvance,
     returnToLobby,
