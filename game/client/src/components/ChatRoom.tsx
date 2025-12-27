@@ -44,6 +44,7 @@ interface ChatRoomProps {
     characterRevealed?: boolean;
   }>;
   hammerCounts?: Record<string, number>; // 敲击计数
+  hammerEffect?: string | null; // 当前显示特效的玩家ID（服务端广播）
   onHammerHit?: (targetPlayerId: string) => void; // 敲击回调
   onSendMessage: (content: string) => void;
   onForceAdvance?: () => void;
@@ -87,6 +88,7 @@ export function ChatRoom({
   theme = 'dark',
   players = [],
   hammerCounts = {},
+  hammerEffect,
   onHammerHit,
   onSendMessage,
   onForceAdvance,
@@ -99,7 +101,6 @@ export function ChatRoom({
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [secretClickCount, setSecretClickCount] = useState(0);
   const [copied, setCopied] = useState(false);
-  const [hammerEffects, setHammerEffects] = useState<Record<string, boolean>>({}); // 敲击特效状态
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -139,11 +140,7 @@ export function ChatRoom({
   const handleHammerHit = (targetId: string) => {
     if (targetId === playerId || !onHammerHit) return;
     onHammerHit(targetId);
-    // 显示敲击特效
-    setHammerEffects(prev => ({ ...prev, [targetId]: true }));
-    setTimeout(() => {
-      setHammerEffects(prev => ({ ...prev, [targetId]: false }));
-    }, 300);
+    // 特效现在由服务端广播，不再本地管理
   };
 
   // 插入表情
@@ -302,7 +299,7 @@ export function ChatRoom({
                   : null;
                 const showEmoji = player.characterRevealed && charConfig;
                 const hitCount = hammerCounts[player.id] || 0;
-                const isHitting = hammerEffects[player.id];
+                const isHitting = hammerEffect === player.id;
 
                 return (
                   <div 

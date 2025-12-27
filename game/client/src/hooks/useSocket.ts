@@ -202,6 +202,7 @@ export function useSocket() {
   // 敲击互动状态
   const [hammerCounts, setHammerCounts] = useState<Record<string, number>>({}); // playerId -> hitCount
   const [shouldShake, setShouldShake] = useState(false); // 是否应该震动屏幕
+  const [hammerEffect, setHammerEffect] = useState<string | null>(null); // 当前显示特效的玩家ID
   const lastShakeTimeRef = useRef<number>(0); // 上次震动时间
   
   // 重连状态
@@ -648,6 +649,12 @@ export function useSocket() {
       setHammerCounts(data.counts);
     });
 
+    socket.on('hammer:effect', (data: { targetPlayerId: string }) => {
+      // 显示敲击特效（所有玩家都能看到）
+      setHammerEffect(data.targetPlayerId);
+      setTimeout(() => setHammerEffect(null), 300);
+    });
+
     socket.on('hammer:shake', () => {
       // 检查震动冷却（客户端也做一次检查，双重保险）
       const now = Date.now();
@@ -1069,6 +1076,7 @@ export function useSocket() {
     // 敲击互动
     hammerCounts,
     shouldShake,
+    hammerEffect,
     sendHammerHit,
     // 帮助功能
     forceAdvance,

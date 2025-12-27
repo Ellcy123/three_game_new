@@ -48,7 +48,7 @@ interface HidingScreenProps {
 const HidingScreen: React.FC<HidingScreenProps> = ({
   playerId,
   players,
-  isHost = false,
+  isHost: _isHost = false, // 已弃用，保留兼容性
   hidingState,
   storyTexts,
   currentStoryIndex,
@@ -97,24 +97,17 @@ const HidingScreen: React.FC<HidingScreenProps> = ({
             </p>
           </div>
           <div className="flex justify-center">
-            {isHost ? (
-              <button
-                onClick={() => debounceClick(currentStoryIndex < storyTexts.length - 1 ? onNextStory : onNextPhase)}
-                className="px-8 py-3 bg-gradient-to-r from-purple-500 to-indigo-500 
-                          hover:from-purple-600 hover:to-indigo-600
-                          rounded-2xl text-lg font-semibold transition-all
-                          shadow-lg hover:shadow-xl hover:scale-105 active:scale-95
-                          flex items-center gap-2"
-              >
-                <span>{currentStoryIndex < storyTexts.length - 1 ? '继续' : '开始躲藏'}</span>
-                <span>▶</span>
-              </button>
-            ) : (
-              <div className="text-purple-300 text-sm flex items-center gap-2">
-                <span className="animate-pulse">⏳</span>
-                <span>等待房主操作...</span>
-              </div>
-            )}
+            <button
+              onClick={() => debounceClick(currentStoryIndex < storyTexts.length - 1 ? onNextStory : onNextPhase)}
+              className="px-8 py-3 bg-gradient-to-r from-purple-500 to-indigo-500 
+                        hover:from-purple-600 hover:to-indigo-600
+                        rounded-2xl text-lg font-semibold transition-all
+                        shadow-lg hover:shadow-xl hover:scale-105 active:scale-95
+                        flex items-center gap-2"
+            >
+              <span>{currentStoryIndex < storyTexts.length - 1 ? '继续' : '开始躲藏'}</span>
+              <span>▶</span>
+            </button>
           </div>
         </div>
       </div>
@@ -157,24 +150,17 @@ const HidingScreen: React.FC<HidingScreenProps> = ({
             </div>
           </div>
           <div className="flex justify-center mt-8">
-            {isHost ? (
-              <button
-                onClick={() => debounceClick(() => { setShowRules(false); onNextPhase(); })}
-                className="px-8 py-3 bg-gradient-to-r from-green-500 to-emerald-500 
-                          hover:from-green-600 hover:to-emerald-600
-                          rounded-2xl text-lg font-semibold transition-all
-                          shadow-lg hover:shadow-xl hover:scale-105 active:scale-95
-                          flex items-center gap-2"
-              >
-                <span>🏃</span>
-                <span>开始躲藏</span>
-              </button>
-            ) : (
-              <div className="text-green-300 text-sm flex items-center gap-2">
-                <span className="animate-pulse">⏳</span>
-                <span>等待房主开始...</span>
-              </div>
-            )}
+            <button
+              onClick={() => debounceClick(() => { setShowRules(false); onNextPhase(); })}
+              className="px-8 py-3 bg-gradient-to-r from-green-500 to-emerald-500 
+                        hover:from-green-600 hover:to-emerald-600
+                        rounded-2xl text-lg font-semibold transition-all
+                        shadow-lg hover:shadow-xl hover:scale-105 active:scale-95
+                        flex items-center gap-2"
+            >
+              <span>🏃</span>
+              <span>开始躲藏</span>
+            </button>
           </div>
         </div>
       </div>
@@ -375,24 +361,17 @@ const HidingScreen: React.FC<HidingScreenProps> = ({
           </div>
 
           <div className="flex justify-center">
-            {isHost ? (
-              <button
-                onClick={() => debounceClick(onNextPhase)}
-                className="px-8 py-3 bg-gradient-to-r from-purple-500 to-indigo-500 
-                          hover:from-purple-600 hover:to-indigo-600
-                          rounded-2xl text-lg font-semibold transition-all
-                          shadow-lg hover:shadow-xl hover:scale-105 active:scale-95
-                          flex items-center gap-2"
-              >
-                <span>{hidingState.currentRound >= hidingState.maxRounds ? '查看最终结算' : '进入下一轮'}</span>
-                <span>▶</span>
-              </button>
-            ) : (
-              <div className="text-purple-300 text-sm flex items-center gap-2">
-                <span className="animate-pulse">⏳</span>
-                <span>等待房主操作...</span>
-              </div>
-            )}
+            <button
+              onClick={() => debounceClick(onNextPhase)}
+              className="px-8 py-3 bg-gradient-to-r from-purple-500 to-indigo-500 
+                        hover:from-purple-600 hover:to-indigo-600
+                        rounded-2xl text-lg font-semibold transition-all
+                        shadow-lg hover:shadow-xl hover:scale-105 active:scale-95
+                        flex items-center gap-2"
+            >
+              <span>{hidingState.currentRound >= hidingState.maxRounds ? '查看最终结算' : '进入下一轮'}</span>
+              <span>▶</span>
+            </button>
           </div>
         </div>
       </div>
@@ -437,24 +416,17 @@ const HidingScreen: React.FC<HidingScreenProps> = ({
           </div>
 
           <div className="flex justify-center">
-            {isHost ? (
-              <button
-                onClick={() => debounceClick(onNextPhase)}
-                className="px-8 py-3 bg-gradient-to-r from-amber-500 to-orange-500 
-                          hover:from-amber-600 hover:to-orange-600
-                          rounded-2xl text-lg font-semibold transition-all
-                          shadow-lg hover:shadow-xl hover:scale-105 active:scale-95
-                          flex items-center gap-2"
-              >
-                <span>继续</span>
-                <span>▶</span>
-              </button>
-            ) : (
-              <div className="text-amber-300 text-sm flex items-center gap-2">
-                <span className="animate-pulse">⏳</span>
-                <span>等待房主操作...</span>
-              </div>
-            )}
+            <button
+              onClick={() => debounceClick(onNextPhase)}
+              className="px-8 py-3 bg-gradient-to-r from-amber-500 to-orange-500 
+                        hover:from-amber-600 hover:to-orange-600
+                        rounded-2xl text-lg font-semibold transition-all
+                        shadow-lg hover:shadow-xl hover:scale-105 active:scale-95
+                        flex items-center gap-2"
+            >
+              <span>继续</span>
+              <span>▶</span>
+            </button>
           </div>
         </div>
       </div>
@@ -473,24 +445,17 @@ const HidingScreen: React.FC<HidingScreenProps> = ({
             </p>
           </div>
           <div className="flex justify-center">
-            {isHost ? (
-              <button
-                onClick={() => debounceClick(currentStoryIndex < storyTexts.length - 1 ? onNextStory : onNextPhase)}
-                className="px-8 py-3 bg-gradient-to-r from-purple-500 to-indigo-500 
-                          hover:from-purple-600 hover:to-indigo-600
-                          rounded-2xl text-lg font-semibold transition-all
-                          shadow-lg hover:shadow-xl hover:scale-105 active:scale-95
-                          flex items-center gap-2"
-              >
-                <span>{currentStoryIndex < storyTexts.length - 1 ? '继续' : '进入下一章'}</span>
-                <span>▶</span>
-              </button>
-            ) : (
-              <div className="text-purple-300 text-sm flex items-center gap-2">
-                <span className="animate-pulse">⏳</span>
-                <span>等待房主操作...</span>
-              </div>
-            )}
+            <button
+              onClick={() => debounceClick(currentStoryIndex < storyTexts.length - 1 ? onNextStory : onNextPhase)}
+              className="px-8 py-3 bg-gradient-to-r from-purple-500 to-indigo-500 
+                        hover:from-purple-600 hover:to-indigo-600
+                        rounded-2xl text-lg font-semibold transition-all
+                        shadow-lg hover:shadow-xl hover:scale-105 active:scale-95
+                        flex items-center gap-2"
+            >
+              <span>{currentStoryIndex < storyTexts.length - 1 ? '继续' : '进入下一章'}</span>
+              <span>▶</span>
+            </button>
           </div>
         </div>
       </div>

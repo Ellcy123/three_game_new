@@ -106,6 +106,7 @@ function App() {
     // 敲击互动
     hammerCounts,
     shouldShake,
+    hammerEffect,
     sendHammerHit,
     // 帮助功能
     forceAdvance,
@@ -245,6 +246,7 @@ function App() {
           onChangeBgmVolume={changeBgmVolume}
           players={chatPlayers}
           hammerCounts={hammerCounts}
+          hammerEffect={hammerEffect}
           shouldShake={shouldShake}
           onHammerHit={sendHammerHit}
         >
@@ -294,6 +296,7 @@ function App() {
           onChangeBgmVolume={changeBgmVolume}
           players={chatPlayers}
           hammerCounts={hammerCounts}
+          hammerEffect={hammerEffect}
           shouldShake={shouldShake}
           onHammerHit={sendHammerHit}
         >
@@ -350,6 +353,7 @@ function App() {
           onChangeBgmVolume={changeBgmVolume}
           players={chatPlayers}
           hammerCounts={hammerCounts}
+          hammerEffect={hammerEffect}
           shouldShake={shouldShake}
           onHammerHit={sendHammerHit}
         >
@@ -401,6 +405,7 @@ function App() {
           onChangeBgmVolume={changeBgmVolume}
           players={chatPlayers}
           hammerCounts={hammerCounts}
+          hammerEffect={hammerEffect}
           shouldShake={shouldShake}
           onHammerHit={sendHammerHit}
         >
@@ -442,6 +447,7 @@ function App() {
         onChangeBgmVolume={changeBgmVolume}
         players={chatPlayers}
         hammerCounts={hammerCounts}
+        hammerEffect={hammerEffect}
         shouldShake={shouldShake}
         onHammerHit={sendHammerHit}
       >
@@ -482,6 +488,7 @@ function App() {
         onChangeBgmVolume={changeBgmVolume}
         players={chatPlayers}
         hammerCounts={hammerCounts}
+        hammerEffect={hammerEffect}
         shouldShake={shouldShake}
         onHammerHit={sendHammerHit}
       >
@@ -528,6 +535,7 @@ function App() {
         onChangeBgmVolume={changeBgmVolume}
         players={chatPlayers}
         hammerCounts={hammerCounts}
+        hammerEffect={hammerEffect}
         shouldShake={shouldShake}
         onHammerHit={sendHammerHit}
       >
@@ -580,6 +588,7 @@ function App() {
         }}
         players={chatPlayers}
         hammerCounts={hammerCounts}
+        hammerEffect={hammerEffect}
         shouldShake={shouldShake}
         onHammerHit={sendHammerHit}
       >
@@ -628,6 +637,7 @@ function App() {
           }}
           players={chatPlayers}
           hammerCounts={hammerCounts}
+          hammerEffect={hammerEffect}
           shouldShake={shouldShake}
           onHammerHit={sendHammerHit}
         >
@@ -682,6 +692,7 @@ function WithChat({
   debugActions,
   players,
   hammerCounts,
+  hammerEffect,
   shouldShake,
   onHammerHit
 }: {
@@ -716,6 +727,7 @@ function WithChat({
     characterRevealed?: boolean;
   }>;
   hammerCounts?: Record<string, number>;
+  hammerEffect?: string | null;
   shouldShake?: boolean;
   onHammerHit?: (targetPlayerId: string) => void;
 }) {
@@ -749,6 +761,7 @@ function WithChat({
         theme={chatTheme}
         players={players}
         hammerCounts={hammerCounts}
+        hammerEffect={hammerEffect}
         onHammerHit={onHammerHit}
         onSendMessage={sendChatMessage}
         onForceAdvance={onForceAdvance}

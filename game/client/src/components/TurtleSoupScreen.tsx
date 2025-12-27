@@ -4,7 +4,7 @@ interface TurtleSoupScreenProps {
   soupState: any;
   playerId: string;
   questionResult: any;
-  isHost?: boolean; // 是否是房主
+  isHost?: boolean; // 是否是房主（已弃用，所有玩家都可操作）
   onClearQuestionResult: () => void;
   onNextStory: () => void;
   onNextPhase: () => void;
@@ -23,7 +23,7 @@ export function TurtleSoupScreen({
   soupState,
   playerId,
   questionResult,
-  isHost = false,
+  isHost: _isHost = false, // 已弃用，保留参数兼容性
   onClearQuestionResult,
   onNextStory,
   onNextPhase,
@@ -34,6 +34,8 @@ export function TurtleSoupScreen({
   onSubmitIdentity,
   onConfirmIdentities
 }: TurtleSoupScreenProps) {
+  // 所有玩家都可以操作，不再限制房主
+  const canOperate = true;
   const [selectedKeyword, setSelectedKeyword] = useState<string | null>(null);
   const [selectedDeathCount, setSelectedDeathCount] = useState<string | null>(null);
   const [selectedIsHuman, setSelectedIsHuman] = useState<string | null>(null);
@@ -72,7 +74,7 @@ export function TurtleSoupScreen({
               </p>
             ))}
           </div>
-          {isHost ? (
+          {canOperate ? (
             <button
               onClick={() => debounceClick(storyIndex < stories.length - 1 ? onNextStory : onNextPhase)}
               className="px-8 py-3 bg-gradient-to-r from-purple-500 to-indigo-500 
@@ -109,7 +111,7 @@ export function TurtleSoupScreen({
               </p>
             ))}
           </div>
-          {isHost ? (
+          {canOperate ? (
             <button
               onClick={() => debounceClick(storyIndex < stories.length - 1 ? onNextStory : onNextPhase)}
               className="px-8 py-3 bg-gradient-to-r from-indigo-500 to-purple-500 
@@ -149,7 +151,7 @@ export function TurtleSoupScreen({
             <span>规则说明</span>
           </h3>
           <ul className="text-purple-100 space-y-2">
-            <li className="flex items-start gap-2"><span>💡</span><span>点击高亮的【关键词】进行提问（仅房主可操作）</span></li>
+            <li className="flex items-start gap-2"><span>💡</span><span>点击高亮的【关键词】进行提问（所有玩家可操作）</span></li>
             <li className="flex items-start gap-2"><span>❓</span><span>从3个问题中选择1个提问</span></li>
             <li className="flex items-start gap-2"><span>✅</span><span>系统会回答 YES 或 NO</span></li>
             <li className="flex items-start gap-2 text-green-300"><span>🎁</span><span>每人有 10 次免费提问机会</span></li>
@@ -158,7 +160,7 @@ export function TurtleSoupScreen({
             <li className="flex items-start gap-2 text-red-300"><span>⚠️</span><span>答错会扣除生命值</span></li>
           </ul>
         </div>
-        {isHost ? (
+        {canOperate ? (
           <button
             onClick={() => debounceClick(onNextPhase)}
             className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 
@@ -193,7 +195,7 @@ export function TurtleSoupScreen({
           const kwConfig = keywordConfigs.find((k: any) => k.text === part);
           const kwState = keywords?.find((k: any) => k.text === part);
           if (kwConfig && kwState) {
-            const canClick = isHost && !kwState.isAsked;
+            const canClick = canOperate && !kwState.isAsked;
             return (
               <span
                 key={index}
@@ -252,27 +254,20 @@ export function TurtleSoupScreen({
 
           <div className="text-center text-purple-300 mb-4 flex items-center justify-center gap-2">
             <span>💡</span>
-            <span>{isHost ? '点击【高亮词语】进行提问' : '房主正在操作，请一起讨论...'}</span>
+            <span>点击【高亮词语】进行提问</span>
           </div>
 
-          {isHost ? (
-            <button
-              onClick={() => debounceClick(onNextPhase)}
-              className="w-full py-3 bg-gradient-to-r from-green-500 to-emerald-500 
-                        hover:from-green-600 hover:to-emerald-600
-                        text-white rounded-2xl text-lg font-bold
-                        shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all
-                        flex items-center justify-center gap-2"
-            >
-              <span>📝</span>
-              <span>提交答案</span>
-            </button>
-          ) : (
-            <div className="text-green-300 text-sm flex items-center justify-center gap-2 py-3">
-              <span className="animate-pulse">⏳</span>
-              <span>等待房主提交...</span>
-            </div>
-          )}
+          <button
+            onClick={() => debounceClick(onNextPhase)}
+            className="w-full py-3 bg-gradient-to-r from-green-500 to-emerald-500 
+                      hover:from-green-600 hover:to-emerald-600
+                      text-white rounded-2xl text-lg font-bold
+                      shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all
+                      flex items-center justify-center gap-2"
+          >
+            <span>📝</span>
+            <span>提交答案</span>
+          </button>
         </div>
 
         {selectedKeyword && (
@@ -305,7 +300,7 @@ export function TurtleSoupScreen({
         </h2>
         <p className="text-purple-200 text-center mb-6">一旦提交，无法返回继续提问！</p>
         <p className="text-purple-200 text-center mb-8">你们准备好揭示真相了吗？</p>
-        {isHost ? (
+        {canOperate ? (
           <div className="flex gap-4">
             <button
               onClick={() => debounceClick(onGoBack)}
@@ -346,44 +341,31 @@ export function TurtleSoupScreen({
             <span>问题1：死亡的有几个角色？</span>
           </h2>
           <p className="text-purple-200 text-center mb-6">在这段记忆中，有几个角色死亡了？</p>
-          {!isHost && (
-            <p className="text-amber-300 text-sm text-center mb-4">（房主正在选择答案）</p>
-          )}
           <div className="grid grid-cols-4 gap-4 mb-6">
             {options.map((opt: string) => (
               <button
                 key={opt}
-                onClick={() => isHost && setSelectedDeathCount(opt)}
-                disabled={!isHost}
+                onClick={() => setSelectedDeathCount(opt)}
                 className={`py-4 rounded-2xl text-2xl font-bold transition-all ${
                   selectedDeathCount === opt
                     ? 'bg-gradient-to-b from-purple-500 to-indigo-500 text-white shadow-lg scale-105'
-                    : isHost
-                      ? 'bg-white/10 text-purple-200 hover:bg-white/20 border border-purple-400'
-                      : 'bg-white/10 text-purple-200 border border-purple-400 cursor-not-allowed'
+                    : 'bg-white/10 text-purple-200 hover:bg-white/20 border border-purple-400'
                 }`}
               >
                 {opt}
               </button>
             ))}
           </div>
-          {isHost ? (
-            <button
-              onClick={() => selectedDeathCount && debounceClick(() => onSubmitDeathCount(selectedDeathCount))}
-              disabled={!selectedDeathCount}
-              className="w-full py-3 bg-gradient-to-r from-purple-500 to-indigo-500 
-                        hover:from-purple-600 hover:to-indigo-600
-                        disabled:from-gray-600 disabled:to-gray-700
-                        text-white rounded-2xl font-bold transition-all"
-            >
-              确认答案
-            </button>
-          ) : (
-            <div className="text-purple-300 text-sm flex items-center justify-center gap-2 py-3">
-              <span className="animate-pulse">⏳</span>
-              <span>等待房主选择...</span>
-            </div>
-          )}
+          <button
+            onClick={() => selectedDeathCount && debounceClick(() => onSubmitDeathCount(selectedDeathCount))}
+            disabled={!selectedDeathCount}
+            className="w-full py-3 bg-gradient-to-r from-purple-500 to-indigo-500 
+                      hover:from-purple-600 hover:to-indigo-600
+                      disabled:from-gray-600 disabled:to-gray-700
+                      text-white rounded-2xl font-bold transition-all"
+          >
+            确认答案
+          </button>
         </div>
       </div>
     );
@@ -407,44 +389,31 @@ export function TurtleSoupScreen({
               问题1: {results.deathCountCorrect ? '✓ 正确' : '✗ 错误（正确答案：3）'}
             </div>
           )}
-          {!isHost && (
-            <p className="text-amber-300 text-sm text-center mb-4">（房主正在选择答案）</p>
-          )}
           <div className="grid grid-cols-2 gap-4 mb-6">
             {options.map((opt: string) => (
               <button
                 key={opt}
-                onClick={() => isHost && setSelectedIsHuman(opt)}
-                disabled={!isHost}
+                onClick={() => setSelectedIsHuman(opt)}
                 className={`py-4 rounded-2xl text-xl font-bold transition-all ${
                   selectedIsHuman === opt
                     ? 'bg-gradient-to-b from-purple-500 to-indigo-500 text-white shadow-lg scale-105'
-                    : isHost
-                      ? 'bg-white/10 text-purple-200 hover:bg-white/20 border border-purple-400'
-                      : 'bg-white/10 text-purple-200 border border-purple-400 cursor-not-allowed'
+                    : 'bg-white/10 text-purple-200 hover:bg-white/20 border border-purple-400'
                 }`}
               >
                 {opt}
               </button>
             ))}
           </div>
-          {isHost ? (
-            <button
-              onClick={() => selectedIsHuman && debounceClick(() => onSubmitIsHuman(selectedIsHuman))}
-              disabled={!selectedIsHuman}
-              className="w-full py-3 bg-gradient-to-r from-purple-500 to-indigo-500 
-                        hover:from-purple-600 hover:to-indigo-600
-                        disabled:from-gray-600 disabled:to-gray-700
-                        text-white rounded-2xl font-bold transition-all"
-            >
-              确认答案
-            </button>
-          ) : (
-            <div className="text-purple-300 text-sm flex items-center justify-center gap-2 py-3">
-              <span className="animate-pulse">⏳</span>
-              <span>等待房主选择...</span>
-            </div>
-          )}
+          <button
+            onClick={() => selectedIsHuman && debounceClick(() => onSubmitIsHuman(selectedIsHuman))}
+            disabled={!selectedIsHuman}
+            className="w-full py-3 bg-gradient-to-r from-purple-500 to-indigo-500 
+                      hover:from-purple-600 hover:to-indigo-600
+                      disabled:from-gray-600 disabled:to-gray-700
+                      text-white rounded-2xl font-bold transition-all"
+          >
+            确认答案
+          </button>
         </div>
       </div>
     );
@@ -506,23 +475,16 @@ export function TurtleSoupScreen({
             })}
           </div>
 
-          {isHost ? (
-            <button
-              onClick={() => debounceClick(onConfirmIdentities)}
-              disabled={!players?.every((p: any) => p.selectedAnimal)}
-              className="w-full py-3 bg-gradient-to-r from-purple-500 to-indigo-500 
-                        hover:from-purple-600 hover:to-indigo-600
-                        disabled:from-gray-600 disabled:to-gray-700
-                        text-white rounded-2xl font-bold transition-all"
-            >
-              确认所有选择
-            </button>
-          ) : (
-            <div className="text-purple-300 text-sm flex items-center justify-center gap-2 py-3">
-              <span className="animate-pulse">⏳</span>
-              <span>等待房主确认...</span>
-            </div>
-          )}
+          <button
+            onClick={() => debounceClick(onConfirmIdentities)}
+            disabled={!players?.every((p: any) => p.selectedAnimal)}
+            className="w-full py-3 bg-gradient-to-r from-purple-500 to-indigo-500 
+                      hover:from-purple-600 hover:to-indigo-600
+                      disabled:from-gray-600 disabled:to-gray-700
+                      text-white rounded-2xl font-bold transition-all"
+          >
+            确认所有选择
+          </button>
         </div>
       </div>
     );
@@ -542,7 +504,7 @@ export function TurtleSoupScreen({
               <span className="text-6xl mb-6 block">✨</span>
               <h2 className="text-3xl font-bold text-amber-300 mb-6">{revelation.title}</h2>
               <p className="text-xl text-purple-200 whitespace-pre-line mb-8">{revelation.subtitle}</p>
-              {isHost ? (
+              {canOperate ? (
                 <button
                   onClick={() => debounceClick(onNextPhase)}
                   className="px-8 py-3 bg-gradient-to-r from-amber-500 to-orange-500 
@@ -584,7 +546,7 @@ export function TurtleSoupScreen({
                 ))}
               </div>
               <p className="text-red-400 font-bold mb-6 text-center bg-red-500/20 p-3 rounded-2xl">{story.deathCause}</p>
-              {isHost ? (
+              {canOperate ? (
                 <button
                   onClick={() => debounceClick(onNextPhase)}
                   className="w-full py-3 bg-gradient-to-r from-purple-500 to-indigo-500 
@@ -625,7 +587,7 @@ export function TurtleSoupScreen({
                   <p key={i} className="text-lg text-purple-100 mb-3 leading-relaxed">{text}</p>
                 ))}
               </div>
-              {isHost ? (
+              {canOperate ? (
                 <button
                   onClick={() => debounceClick(storyIndex < epilogue.length - 1 ? onNextStory : onNextPhase)}
                   className="px-8 py-3 bg-gradient-to-r from-purple-500 to-indigo-500 
@@ -670,7 +632,7 @@ export function TurtleSoupScreen({
               <p key={i} className="text-lg text-purple-100 mb-3 leading-relaxed">{text}</p>
             ))}
           </div>
-          {isHost ? (
+          {canOperate ? (
             <button
               onClick={() => debounceClick(storyIndex < transition.length - 1 ? onNextStory : onNextPhase)}
               className="px-8 py-3 bg-gradient-to-r from-purple-500 to-indigo-500 
@@ -751,7 +713,7 @@ export function TurtleSoupScreen({
             <p>你们的真实身份即将揭晓...</p>
           </div>
           
-          {isHost ? (
+          {canOperate ? (
             <button
               onClick={() => debounceClick(onNextPhase)}
               className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 

@@ -301,19 +301,12 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
             </p>
           </div>
           <div className="flex justify-center">
-            {isMyTurn ? (
-              <button 
-                onClick={storyState.currentStoryIndex < storyState.currentStoryTexts.length - 1 ? onNextStory : onNextPhase}
-                className={buttonClass}
-              >
-                继续 →
-              </button>
-            ) : (
-              <p className="text-amber-600 flex items-center gap-2">
-                <span className="animate-spin">⏳</span>
-                等待玩家继续...
-              </p>
-            )}
+            <button 
+              onClick={storyState.currentStoryIndex < storyState.currentStoryTexts.length - 1 ? onNextStory : onNextPhase}
+              className={buttonClass}
+            >
+              继续 →
+            </button>
           </div>
         </div>
       </div>
@@ -442,14 +435,7 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
           )}
           
           <div className="flex justify-center">
-            {isMyTurn ? (
-              <button onClick={onNextPhase} className={buttonClass}>继续 →</button>
-            ) : (
-              <p className="text-amber-600 flex items-center gap-2">
-                <span className="animate-spin">⏳</span>
-                等待玩家继续...
-              </p>
-            )}
+            <button onClick={onNextPhase} className={buttonClass}>继续 →</button>
           </div>
         </div>
       </div>
@@ -478,19 +464,12 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
             </p>
           </div>
           <div className="flex justify-center">
-            {isMyTurn ? (
-              <button 
-                onClick={storyState.currentStoryIndex < storyState.currentStoryTexts.length - 1 ? onNextStory : onNextPhase}
-                className={buttonClass}
-              >
-                继续 →
-              </button>
-            ) : (
-              <p className="text-amber-600 flex items-center gap-2">
-                <span className="animate-spin">⏳</span>
-                等待玩家继续...
-              </p>
-            )}
+            <button 
+              onClick={storyState.currentStoryIndex < storyState.currentStoryTexts.length - 1 ? onNextStory : onNextPhase}
+              className={buttonClass}
+            >
+              继续 →
+            </button>
           </div>
         </div>
       </div>

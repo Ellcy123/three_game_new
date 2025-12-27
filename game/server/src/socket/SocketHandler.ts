@@ -3210,6 +3210,9 @@ export class SocketHandler {
     // 广播更新后的计数给所有玩家
     this.io.to(room.id).emit('hammer:update', { counts: countsObj });
 
+    // 广播敲击特效给所有玩家（让所有人都能看到爆炸效果）
+    this.io.to(room.id).emit('hammer:effect', { targetPlayerId });
+
     // 检查是否需要触发目标玩家的屏幕震动（10秒冷却）
     const now = Date.now();
     const lastShake = this.lastShakeTime.get(targetPlayerId) || 0;
